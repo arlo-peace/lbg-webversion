@@ -1,0 +1,313 @@
+<template>
+	<view class="bg" :style="autoHeight">
+		<web-view v-if="isChoose && userInfo.url.length > 0" :key="showUrl" ref="webview"
+			:webview-styles="webviewStyles" :style="autoIfrHeight" :src="showUrl">
+		</web-view>
+		<cover-view class="showButton showButton-0" @click="toggleShow">
+			<cover-image src="/static/menu.png" style="width:100rpx;height:100rpx"></cover-image>
+		</cover-view>
+		<cover-view class="showButton showButton-1" v-if="showBtn" @click="actionWork('recharge')">
+			<text style="color:white;font-size:13px;">充值</text>
+		</cover-view>
+		<cover-view class="showButton showButton-2" v-if="showBtn" @click="actionWork('refresh')">
+			<text style="color:white;font-size:13px;">刷新</text>
+		</cover-view>
+		<cover-view class="showButton showButton-3" v-if="showBtn" @click="actionWork('quit')">
+			<text style="color:white;font-size:13px;">退出</text>
+		</cover-view>
+		<css-loading ref="cssLoading"></css-loading>
+	</view>
+</template>
+
+<script>
+	import api from "@/common/api.js";
+	import Base64 from "@/common/code.js";
+	import cssLoading from '@/components/css-loading/loading.vue'
+	var _self;
+	export default {
+		components: {
+			cssLoading
+		},
+		data() {
+			return {
+				userInfo: {
+					url: null,
+					money: 0,
+					dg_username: '',
+					dg_money: 0,
+					dg_datetime: '',
+					is_first: false
+				},
+				showBtn: false,
+				showUrl: '',
+				winHeight: 200,
+				winWidth: 200,
+				statusBarHeight: 24,
+				userId: 0,
+				gameId: null,
+				isChoose: false,
+				showMore: false,
+				isQuit: false,
+				webviewStyles: {
+					progress: false
+				},
+				action: 'start'
+			}
+		},
+		onHide() {
+			uni.request({
+				url: api.apiData.quitDG,
+				data: {
+					userId: _self.userId,
+					game: _self.gameId
+				},
+				method: 'GET',
+				header: {
+					'Content-type': 'application/x-www-form-urlencoded'
+				},
+				success: (e) => {
+					if (e.data.Code != 200) {
+						_self.msgData(e.data.Msg, 5000);
+					}
+					_self.isChoose = false
+					_self.showUrl = ''
+				},
+				fail: () => {
+					_self.msgData('服务器连接失败，请检查网络是否正常', 5000);
+				}
+			});
+		},
+		onShow() {
+			_self.loginDg()
+		},
+		onLoad(e) {
+			_self = this;
+			_self.gameId = e.id
+			_self._showLoading('加载中...');
+			// 是否登录
+			const info = api.getLogins();
+			if (info === false) {
+				_self.skipUrl();
+			} else {
+				_self.userId = info.userId;
+			}
+			_self.autoWidth()
+			if (_self.gameId) {
+				_self.loginDg()
+			}
+			_self._hideLoading();
+		},
+		computed: {
+			autoHeight() {
+				return {
+					height: _self.winHeight + 'px',
+					width: _self.winWidth + 'px'
+				}
+			},
+			autoIfrHeight() {
+				return {
+					marginTop: _self.statusBarHeight + 'px',
+					height: (_self.winHeight - _self.statusBarHeight) + 'px',
+					width: _self.winWidth + 'px'
+				}
+			}
+		},
+		methods: {
+			_showLoading(text = null) {
+				this.$nextTick(() => {
+					this.$refs.cssLoading.open(text)
+				})
+			},
+			_hideLoading() {
+				this.$nextTick(() => {
+					this.$refs.cssLoading.close()
+				})
+			},
+			toggleShow() {
+				_self.showBtn = !_self.showBtn
+			},
+			actionWork(type) {
+				_self.action = type
+				_self.runWork()
+			},
+			runWork() {
+				if (_self.action == 'start') {
+					_self.makeUrl()
+				}
+				if (_self.action == 'refresh') {
+					_self.loginDg()
+				}
+				if (_self.action == 'quit') {
+					_self.isQuit = true
+					uni.request({
+						url: api.apiData.quitDG,
+						data: {
+							userId: _self.userId,
+							game: _self.gameId
+						},
+						method: 'GET',
+						header: {
+							'Content-type': 'application/x-www-form-urlencoded'
+						},
+						success: (e) => {
+							if (e.data.Code != 200) {
+								_self.msgData(e.data.Msg, 5000);
+							}
+							uni.reLaunch({
+								url: '/pages/dggame/dggame?needRefresh=1'
+							});
+						},
+						fail: () => {
+							// 加载失败提示
+							_self.msgData('服务器连接失败，请检查网络是否正常', 5000);
+						}
+					});
+				}
+				if (_self.action == 'recharge') {
+					setTimeout(() => {
+						uni.navigateTo({
+							url: '/pages/recharge/recharge'
+						});
+					}, 200)
+				}
+				_self.action = 'start'
+			},
+			autoWidth() {
+				var mobile = uni.getSystemInfoSync();
+				_self.statusBarHeight = mobile.statusBarHeight
+				_self.winHeight = mobile.windowHeight
+				_self.winWidth = mobile.windowWidth
+			},
+			loginDg() {
+				uni.request({
+					url: api.apiData.loginDG,
+					data: {
+						userId: _self.userId,
+						game: _self.gameId
+					},
+					method: 'GET',
+					header: {
+						'Content-type': 'application/x-www-form-urlencoded'
+					},
+					success: (e) => {
+						_self._hideLoading();
+						if (e.data.Code != 200) {
+							_self.msgData(e.data.Msg, 5000);
+						} else {
+							_self.userInfo = e.data.Data;
+							_self.makeUrl()
+						}
+					},
+					fail: () => {
+						// 加载失败提示
+						_self.msgData('服务器连接失败，请检查网络是否正常', 5000);
+					}
+				});
+			},
+			makeUrl() {
+				_self.showUrl = _self.userInfo.url
+				_self.isChoose = true
+			},
+			// 跳转
+			skipUrl(url = '/pages/login/login', type = 1) {
+				if (type == 1) {
+					uni.reLaunch({
+						url: url
+					});
+				} else {
+					uni.navigateTo({
+						url: url
+					});
+				}
+			},
+			// 提示
+			msgData(title = '', times = 1000, style = 'none') {
+				_self._hideLoading()
+				setTimeout(() => {
+					uni.showToast({
+						icon: style,
+						title: title,
+						mask: true,
+						duration: times
+					});
+
+				}, 200)
+			}
+		},
+		onBackPress() {
+			if (!_self.isQuit) {
+
+				uni.request({
+					url: api.apiData.quitDG,
+					data: {
+						userId: _self.userId,
+						game: _self.gameId
+					},
+					method: 'GET',
+					header: {
+						'Content-type': 'application/x-www-form-urlencoded'
+					},
+					success: (e) => {
+						if (e.data.Code != 200) {
+							_self.msgData(e.data.Msg, 5000);
+						}
+						_self.isChoose = false
+						_self.showUrl = ''
+					},
+					fail: () => {
+						_self.msgData('服务器连接失败，请检查网络是否正常', 5000);
+					}
+				});
+			}
+		},
+		// 下拉刷新
+		onPullDownRefresh() {
+			uni.stopPullDownRefresh();
+		}
+	}
+</script>
+
+<style>
+	.bg {
+		background: #051937;
+		position: relative;
+	}
+
+	.showButton {
+		position: fixed;
+		z-index: 10003;
+		width: 100rpx;
+		height: 100rpx;
+		border-color: rgba(55, 55, 55, .75);
+		border-width: 1px;
+		border-style: solid;
+		border-radius: 50%;
+		overflow: hidden;
+		box-shadow: 0px 0px 10rpx 2rpx rgba(50, 50, 50, .75);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		padding: 6rpx;
+		top: 50rpx;
+		left: 40rpx;
+		transform: rotate(90deg);
+	}
+
+	.showButton-1 {
+		top: 170rpx;
+		background-color: rgba(50, 50, 50, 1);
+		color: #ffffff;
+	}
+
+	.showButton-2 {
+		top: 290rpx;
+		background-color: rgba(50, 50, 50, 1);
+		color: #ffffff;
+	}
+
+	.showButton-3 {
+		top: 410rpx;
+		background-color: rgba(50, 50, 50, 1);
+		color: #ffffff;
+	}
+</style>

@@ -1,0 +1,2921 @@
+<template>
+	<div class="conbox">
+		<css-loading ref="cssLoading"></css-loading>
+		<div class="top-box" :style="{'padding-top':SystemInfo.statusBarHeight + unit}">
+			<!--<image :src="poster" mode="aspectFill" @load="loadedmetadata" style="position:absolute;z-index:-1;"></image>-->
+			<!-- :title="info.videoInfo.title" -->
+			<video id='video1' class="video" object-fit="contain" :direction="direction" :autoplay="true"
+				:show-center-play-btn="false" :loop="true" :show-progress="true" :src="videourl"
+				:initial-time="initialtime" :controls="controls" :poster="poster"
+				:enable-progress-gesture="enableProgress" :play-strategy="playStrategy" @play="onstart" @pause="onpause"
+				@error="onfail" @timeupdate="timeupdate" @fullscreenchange="fullscreenchange" @ended="playEnd"
+				@waiting="videoWaiting" @controlstoggle="controlstoggle" v-if="isShowPlay">
+				<div class="content-head" @click="back" v-if="!fullScreen"
+					:style="{'top':SystemInfo.statusBarHeight + 25 +'px'}">
+					<image class="backimage" src="@/static/imgs/back.png" mode="aspectFill"
+						style="width:20px;height:20px;margin-right:5px;"></image>
+				</div>
+				<text class="title-video" v-if="showControl && fullScreen">
+					{{ info.videoInfo.title }}
+				</text>
+				<image class="before-ad" v-if="isHide == 0" @click="open()" :src="ad_img" mode="aspectFit"></image>
+				<image class="pause-ad"
+					:style="{ width:windowWidth+'wx',height:pauseHeight+'wx',left:pauseLeft+'wx',top:pauseTop+'wx' }"
+					v-if="ispause==1" @click="open()" :src="ad_img" mode="aspectFill">
+				</image>
+
+				<text class="video-waiting" :style="{ left:waitingLeft+ 'rpx',top:waitingTop+'wx' }"
+					v-if="isStartNetworkSize&&!showVideoErrorTips&&ispause!=1">{{waitingFlow}}
+				</text>
+				<text class="video-rate" :style="{top:waitingTop+'wx', left: rateLeft+'wx'}" @click="openRate"
+					v-if="nowRate&&showControl">{{nowRate==1?'倍速':'x'+nowRate}}</text>
+				<!-- <text class="video-rate" :style="{top:waitingTop+'wx'}" @click="openRate"
+					v-if="nowRate==1&&showControl">倍速</text> -->
+				<!-- <text class="video-rate" :style="{top:waitingTop+'wx'}" @click="openRate" v-else-if="showControl">x
+					{{nowRate}}倍速</text> -->
+				<view class="rate-list" :style="{top:(waitingTop - 80)+'wx', left: (rateLeft-70)+'wx'}"
+					v-if="isShowRate&&showControl">
+					<text class="rate-list-text" :class="nowRate==r?'rate-list-text-sel':''" @click="setRate(r)"
+						v-for="(r, i) in rateList" :key="i">x {{r}}</text>
+				</view>
+
+				<image class="lock" mode="aspectFill" :src="lockImg" :style="{top: lockHieght + 'px'}" v-if="isNetwork"
+					@click="lockVideo">
+				</image>
+
+				<image class="projection-TV" src="@/static/imgs/projectionTV.png" :style="{top:lockHieght+'px'}"
+					mode="aspectFill"
+					v-if="isProjectionTV&&currentVideoType==1&&isTry==0&&SystemInfo.platform=='android'"
+					@click="showTV">
+				</image>
+
+				<text class="ad-time" @click="skip" v-if="seconds>-1">{{ seconds }} | VIP可跳过广告 </text>
+				<text class="ad-time" v-if="trySeconds!=0">{{ trySeconds }} S 后试看结束 </text>
+
+				<div class="video-operation-box relative" :style="{top:barHeight+'wx'}">
+					<cover-view class="before-video-ad" v-if="videoAd != 0" @click="open()"></cover-view>
+				</div>
+
+				<!--<div class="error-tips" v-if="showVideoErrorTips && loadings != 1">
+					<text style="color: #fff;">服务器连接失败，请稍后再试</text>
+				</div>-->
+
+
+				<div class="video-gold-tips-box-mask" v-if="showNotGoldTips && loadings != 1"
+					style="background-color:#000000;">
+					<div class="video-tips-box video-gold-tips-box" v-if="showNotGoldTips">
+						<text style="color:#fff;font-size:16px;margin-top:50rpx;">{{ showMsgContent }}</text>
+						<div class="tips-bt-box">
+							<text class="tips-bt"
+								@click="clickConfirm('_self.'+confirmType+'()')">{{ confirmText }}</text>
+							<text class="tips-bt"
+								@click="clickCancelBt('_self.'+cancelType+'()')">{{ cancelText }}</text>
+						</div>
+					</div>
+				</div>
+
+			</video>
+
+		</div>
+
+		<div style="background-color: #1D1D28;"
+			:style="{'margin-top':SystemInfo.statusBarHeight+'px','height':(toTopHeight+315)+'wx'}"
+			v-if="videoline.length > 1"></div>
+		<div style="background-color: #1D1D28;"
+			:style="{'margin-top':SystemInfo.statusBarHeight+'px','height':(toTopHeight+255)+'wx'}" v-else></div>
+
+		<div style="height:100rpx;" class="ad-list flex-row" @click="jumpAdUrl('/pages/member/poster', 'new')"
+			v-if="!info.isVip&&isShowFree&&freeWacth.count>0">
+			<image style="position:absolute;left:12rpx;top:0;right:12rpx;bottom:0;width:726rpx;height:100rpx"
+				:src="imageURL"></image>
+			<text class="watch-free">今日剩余观看次数 {{freeWacth.free}} / {{freeWacth.count}}</text>
+		</div>
+
+		<div class='video-content' v-if="loadings != 1">
+			<div class='video-info-box'>
+				<text class='video-title'>{{info.videoInfo.title}}</text>
+				<div class='flex-row relative'>
+					<div class="video-gold flex-row" v-if="info.isVip">
+						<text class='video-gold-num' style="color:#ff9030;font-size:12px;">尊贵的VIP</text>
+					</div>
+					<div class="video-gold flex-row" v-else-if="info.videoInfo.gold>0">
+						<image class="video-gold-image" src="@/static/imgs/gold.png" style="height:13px;width:13px;">
+						</image>
+						<text class='video-gold-num'
+							style="color:#ff9030;font-size:12px;">{{info.videoInfo.gold}}</text>
+					</div>
+					<div class="video-gold flex-row" v-else>
+						<text class='video-gold-num' style="color:#ff9030;font-size:12px;">限免</text>
+					</div>
+					<image src="/static/imgs/_rd.png" style="height:13px;width:13px;margin-left:5px;margin-right:5px;">
+					</image>
+					<text class='video-click-num'
+						style="font-size:12px;color:#999999;">{{info.videoInfo.click}}次播放</text>
+					<image src="/static/imgs/_rd.png" style="height:13px;width:13px;margin-left:5px;margin-right:5px;">
+					</image>
+					<text class='video-click-num'
+						style="font-size:12px;color:#999999;">{{info.videoInfo.className}}</text>
+					<image src="/static/imgs/_rd.png" style="height:13px;width:13px;margin-left:5px;margin-right:5px;">
+					</image>
+					<text class='video-click-num'
+						style="font-size:12px;color:#999999;">{{utils.timeTodate('Y年m月d日',info.videoInfo.add_time)}}</text>
+					<!-- <text style="margin: 10px;" @click="playDemo">测试</text> -->
+				</div>
+				<div class='video-operation-box flex-row relative' style="margin-bottom:5px;margin-top:8px;">
+					<div class="action-buttons" @click="like()">
+						<image class="video-operation-image" v-if="info.isLike == 1" src="@/static/imgs/like.png">
+						</image>
+						<image class="video-operation-image" v-else src="@/static/imgs/like_un.png"></image>
+						<text style="font-size:10px;margin-top: 4upx;color:#999999;">点赞({{_self.info.likeSum}})</text>
+					</div>
+
+					<div class="action-buttons" @click="collection()">
+						<image class="video-operation-image" v-if="_self.info.isCollection == 1"
+							src="@/static/imgs/collection.png"></image>
+						<image class="video-operation-image" v-else src="@/static/imgs/collection_un.png"></image>
+						<text
+							style="font-size:10px;margin-top: 4upx;color:#999999;width:25px;text-align:center;">收藏</text>
+					</div>
+					<div class="action-buttons" @click="jumpUrl('member/poster', 'new')">
+						<image class="video-operation-image" :src="shareImg"></image>
+						<text
+							style="font-size:10px;margin-top: 4upx;color:#999999;width:25px;text-align:center;">分享</text>
+					</div>
+					<div class="action-buttons" @click="download()" v-if="_self.canDownload">
+						<image class="video-operation-image" :src="downImg"></image>
+						<text
+							style="font-size:10px;margin-top: 4upx;color:#999999;width:25px;text-align:center;">下载</text>
+					</div>
+					<div class="action-buttons" @click="selectLine()" v-if="subLineList.length">
+						<image class="video-operation-image" src="@/static/imgs/_cut.png"></image>
+						<text style="font-size:10px;margin-top: 4upx;color:#B01A1C;">线路 {{lineName}}</text>
+					</div>
+
+
+					<div class="show-introduction flex-row">
+						<!-- <text class="show-introduction-text" @click="switchoverPlay" v-if="isPlay">播放器 | </text> -->
+						<text class="show-introduction-text" @click="showIntroduction()">简介</text>
+						<uni-icons class="show-introduction-icons" type="forward" color="#cccccc" size="22"
+							style="margin-right:-5px;" @click="showIntroduction()"></uni-icons>
+					</div>
+				</div>
+
+				<div style="width:750rpx;margin-bottom:-5px;" v-if="isLines">
+					<div class="flex-row">
+						<text :class="bigLineId==i?'server-title server-sel':'server-title'" v-for="(l, i) in info.hDvd"
+							:key="i" @click="setLine(l,i)">{{l.name}}</text>
+					</div>
+					<div class="flex-row server-lines">
+						<text :class="subLineId==ti?'server-info server-info-sel':'server-info'"
+							v-for="(tl, ti) in subLineList" :key="ti" @click="setSubLine(tl,ti)">{{tl.name}}</text>
+					</div>
+				</div>
+			</div>
+			<div class="guess-video-list flex-row">
+
+				<!-- <div style="background-color:#1D1D28;padding-left:20rpx;" v-if="hDvdList.length">
+					<div class="flex-row flex-start">
+						<image class="title-icon" src="@/static/play/cor.png"></image>
+						<text class="title" style="margin-top:-5rpx;width:700rpx;color:#FFFFFF;">选集(共{{hDvdList.length}}集){{setLineName}}</text>
+					</div>
+					<div style="width:750rpx;height:87rpx;">
+						<scroll-view class="teleplay-scroll" scroll-x="true" style="padding-right:35rpx;">
+							<div v-for="(h, i) in hDvdList" :key="i" @click="selectedVideo(h)">
+								<text :class="number==h.id?'teleplay-number play-lading':'teleplay-number'">{{h.number}}</text>
+								<text class="teleplay-yg" v-if="h.text==3">预告</text>
+							</div>
+						</scroll-view>
+					</div>
+					<div style="width:750rpx;margin-top:15px;"></div>
+				</div> -->
+
+				<div class="flex-row author" @click="goAuthorHome(author.id)" v-if="author.id>0">
+					<image class="author-tx" :src="author.headimgurl" mode="aspectFill"></image>
+					<text class="author-username">{{author.username}}</text>
+					<text class="author-home">作者主页</text>
+				</div>
+
+				<div style="width:750rpx;background-color:#1D1D28;padding-bottom:20rpx;padding-top:10rpx;"
+					v-if="adList.length">
+					<div class="ad-list" v-for="(a, i) in adList" :key="i">
+						<image class="ad-img" :style="{ height: a.height+'px' }" :src="a.content" mode="aspectFill"
+							@click="jumpAdUrl(a.url, 'web')"></image>
+					</div>
+				</div>
+				<div style="background-color:#1D1D28;padding-left:20rpx;margin-top:20rpx;"
+					v-if="info.productionList.length>0">
+					<div class="flex-row flex-start">
+						<text class="title" style="margin-top:5rpx;">演员或出品</text>
+					</div>
+					<div style="width:750rpx;height:190rpx;">
+						<scroll-view class="production-scroll" :show-scrollbar="false" scroll-x="true">
+							<view class="production-info" v-for="(s, i) in _self.info.productionList" :key="i">
+								<view class="production-item">
+									<image @click="goProduction(s.id)" class="production-img" :src="s.thumbnail"
+										mode="aspectFill"></image>
+									<view @click="goProduction(s.id)" class="production-title">
+										<text style="color: #FFF;font-size: 12px;">{{s.name}}</text>
+									</view>
+									<image @click="focusProduction(i)"
+										:src="`/static/production/${s.focus ? 'guanzhu002' : 'guanzhu001'}.png`"
+										class="production-focus"></image>
+								</view>
+							</view>
+						</scroll-view>
+					</div>
+					<div style="width:750rpx;margin-top:15px;"></div>
+				</div>
+
+				<div style="background-color:#1D1D28;padding-left:20rpx;margin-top:20rpx;" v-if="info.simi.length>0">
+					<div class="flex-row flex-start">
+						<text class="title" style="margin-top:5rpx;">相关视频</text>
+					</div>
+					<div style="width:750rpx;height:190rpx;">
+						<scroll-view class="teleplay-scroll" :show-scrollbar="false" scroll-x="true">
+							<div class="simi-info" v-for="(s, i) in info.simi" :key="i" @click="playVideo(s.id)">
+								<image class="simi-img" :src="s.thumbnail" mode="aspectFill"></image>
+								<text class="simi-title">{{s.title}}</text>
+							</div>
+						</scroll-view>
+					</div>
+					<div style="width:750rpx;margin-top:15px;"></div>
+				</div>
+
+				<div class="flex-row flex-start"
+					style="background-color:#1D1D28;width:750rpx;padding-left:20rpx;margin-top:10rpx;">
+					<text class="title" style="margin-top:5rpx;color:#FFFFFF;">猜你喜欢</text>
+				</div>
+				<div
+					style="width:750rpx;display:flex;flex-direction:row;flex-wrap:wrap;background-color:#1D1D28;padding-left:20rpx;">
+					<div class="guess-video-info" v-for="(i, k) in guessList" :key="k" @click="playVideo(i.id)">
+						<image class="guess-video-img" :src="i.thumbnail" mode="aspectFill"></image>
+						<image class="is-vip" src="/static/play/ico_vip.png" v-if="i.gold>0"></image>
+						<image class="is-vip" src="/static/play/ico_free.png" v-else></image>
+						<text class="guess-video-playTime" v-if="i.play_time">{{i.play_time}}</text>
+						<text class="guess-video-title">{{i.title}}</text>
+						<div class="flex-row space-between">
+							<div class="guess-video-gold flex-row">
+								<image class='guess-video-gold-img' src="/static/homePage/click.png" mode="aspectFill">
+								</image>
+								<text class="guess-video-gold-num">{{i.click}}</text>
+							</div>
+							<text class="guess-video-date">{{utils.timeTodate('Y-m-d',i.update_time)}}</text>
+						</div>
+					</div>
+					<div style="width:750rpx;margin-top:5px;"></div>
+				</div>
+			</div>
+
+			<div class="uni-padding-wrap uni-comment-list-box">
+
+				<div class="flex-row flex-start">
+					<text class="title" style="margin-top:-5rpx;">网友吐槽</text>
+				</div>
+				<!-- 评论区 start -->
+				<div class="uni-comment" v-if="commentList.list.length">
+					<div class="uni-comment-list flex-row" v-for="(i, k) in commentList.list" :key="k">
+						<div class="uni-comment-face">
+							<image class="uni-comment-face-img" v-if="i.headimgurl" :src="i.headimgurl"></image>
+							<image class="uni-comment-face-img" v-else src="@/static/imgs/head.png"></image>
+						</div>
+						<div class="uni-comment-body">
+							<div class="uni-comment-top">
+								<text class="uni-comment-username">{{i.nickname}}</text>
+							</div>
+							<div class="uni-comment-date">
+								<text class="uni-comment-addtime"
+									v-if="i.last_time">{{utils.timeTodate('Y年m月d日', i.last_time+'')}}</text>
+								<text class="uni-comment-addtime" v-else>刚刚</text>
+							</div>
+							<text class="uni-comment-content">{{i.content}}</text>
+						</div>
+					</div>
+				</div>
+				<div class="uni-not-comment" v-else>
+					<image src="/static/empty.png" style="width:100px;height:100px;"></image>
+					<text class="not-comment-text">当前暂无评论</text>
+				</div>
+			</div>
+
+			<uni-popup ref="showintroduction" type="bottom" @change="change" v-if="showTVcontnet==1">
+				<div class="introduction-box"
+					:style="{'min-height': (SystemInfo.screenHeight-250-SystemInfo.statusBarHeight) + 'wx', 'max-height': (SystemInfo.screenHeight-250-SystemInfo.statusBarHeight) + 'wx',}">
+					<div class="introduction-head">
+						<text class="introduction-title">视频简介</text>
+						<image class="introduction-close" src="@/static/imgs/delx.png" @click="cancel('introduction')">
+						</image>
+					</div>
+					<div style="margin:15px;border-bottom-width:1;border-bottom-color:#E5E5E5;padding-bottom:20rpx;">
+
+						<div style="flex-direction:row">
+							<text class="introduction-name">片名：</text>
+							<text class="introduction-content">{{info.videoInfo.title}}</text>
+						</div>
+
+						<div v-if="info.actorList.length>0" style="flex-direction:row">
+							<text class="introduction-name">主演：</text>
+							<text class="introduction-content" style="color:#007AFF;">{{info.actorList}}</text>
+						</div>
+
+						<div v-if="info.tagList.length>0" style="flex-direction:row">
+							<text class="introduction-name">标签：</text>
+							<text class="introduction-content" style="color:#007AFF;">{{info.tagList}}</text>
+						</div>
+
+						<div style="flex-direction:row">
+							<text class="introduction-name">时间：</text>
+							<text
+								class="introduction-content">{{utils.timeTodate('Y年m月d日',info.videoInfo.add_time+'')}}</text>
+						</div>
+
+					</div>
+					<!-- <text class="introduction-text" v-if="info.videoInfo.info">{{info.videoInfo.info}}</text> -->
+					<list show-scrollbar="false" v-if="info.videoInfo.info"
+						style="padding-left:15px;padding-right:15px;margin-bottom:10px;">
+						<cell>
+							<rich-text :nodes="videoContent" style="line-height:23px;font-size:14px;">数据正在加载中...
+							</rich-text>
+						</cell>
+					</list>
+					<text class="introduction-text" v-else>暂无简介</text>
+
+				</div>
+			</uni-popup>
+			<uni-popup ref="showintroduction" type="bottom" :mask-click="false" @change="change" v-else>
+				<div class="introduction-box"
+					:style="{'min-height': (SystemInfo.screenHeight-250-SystemInfo.statusBarHeight)+'wx', 'max-height': (SystemInfo.screenHeight-250-SystemInfo.statusBarHeight) + 'wx',}">
+					<div class="introduction-head">
+						<text class="introduction-title">投屏</text>
+						<image class="introduction-close" src="@/static/imgs/delx.png" @click="cancel('introduction')">
+						</image>
+					</div>
+					<div style="margin:15px;border-bottom-width:1;border-bottom-color:#E5E5E5;padding-bottom:20rpx;">
+
+						<div style="flex-direction:row">
+							<text class="introduction-name">当前：</text>
+							<text class="introduction-content" style="text-decoration:underline;">{{TVtitle}}</text>
+						</div>
+
+						<text @click="searchTV" class="search-TV">{{czTvText}}</text>
+
+						<div style="width:750rpx;margin-top:10rpx;">
+							<div v-for="dev in devList" :key="dev.id" style="padding:10rpx;">
+								<text @click="startTV(dev.id, dev.name)"
+									style="font-size:13px;text-decoration:underline;">设备名：{{dev.name}} [点击连接]</text>
+							</div>
+						</div>
+					</div>
+
+					<list show-scrollbar="false">
+						<cell>
+							<image src="/static/imgs/_1.jpg" mode="aspectFill"></image>
+							<image src="/static/imgs/_2.jpg" mode="aspectFill"></image>
+						</cell>
+					</list>
+				</div>
+			</uni-popup>
+
+		</div>
+
+		<div class="add-comment-box flex-row space-between" :style="{ bottom: keyheight+'px' }">
+			<input class="comment-input" v-model="commentContent" type="text" placeholder="我要说点什么~" confirm-type="send"
+				@input="onInput" adjust-position="false" @keyboardheightchange="keyboardheightchange">
+			<text class="comment-send" @click="comment">发送</text>
+		</div>
+		<view class="show-toast" :style="{width:SystemInfo.windowWidth + 'px',height: SystemInfo.windowHeight+ 'px'}"
+			v-if="showToast">
+			<view class="show-toast-box">
+				<text class="show-toast-box-text" v-for="t,i in texts" :key="i">{{t}}</text>
+			</view>
+		</view>
+	</div>
+
+</template>
+<script>
+	import api from "@/common/api.js";
+	const requestUrl = api.apiData.videoInfo;
+	const requestCommentListUrl = api.apiData.commentList;
+	const requestAddCollectionUrl = api.apiData.addCollection;
+	const requestLikeUrl = api.apiData.videoLike;
+	const requestAddCommentUrl = api.apiData.addComment;
+	const requestProductionLikeUrl = api.apiData.productionFocus;
+
+	//const subNVue = uni.getSubNVueById('introduction')
+	const duration = 20000
+	var _self;
+	var userid = 0;
+	var videoId = 0;
+	var isdownload = 0;
+	var lastCommentId = 0; //最后一条评论的id
+
+	var TrafficStats; //TrafficStats类实例对象
+	var total_data; //总共接收到的流量  
+	var traffic_data; //一定时间内接收到的流量  
+	var intervalId; //定时器的返回值，用于控制计时器的停止  
+
+	import uniIcons from "@/components/uni-icons/uni-icons.vue"
+	import uniSection from '@/components/uni-section/uni-section.vue'
+	import uniTransition from '@/components/uni-transition/uni-transition.vue'
+	import uniPopup from '@/components/uni-popup/uni-popup.vue'
+	import uniLoadMore from "@/components/uni-load-more/uni-load-more.vue"
+	import parser from '@/components/jyf-parser/jyf-parser';
+	import utils from '@/components/shoyu-date/utils.filter.js';
+	import cssLoading from '@/components/css-loading/loading.vue';
+	import htmlParser from "@/common/html_parser.js";
+
+	import Down from '@/common/downNative.js'
+	const dlna = uni.requireNativePlugin('JX-Dlna');
+
+	export default {
+		components: {
+			uniSection,
+			uniPopup,
+			uniIcons,
+			uniTransition,
+			cssLoading,
+			'jyf-parser': parser,
+		},
+		data() {
+			return {
+				showLoading: true,
+				utils: utils,
+				//duration: 1728.730957, 
+				controls: false, //是否显示默认播放控件（播放/暂停按钮、播放进度、时间）
+				enableProgress: true, //是否开启控制进度的手势
+				initialtime: "", //指定视频初始播放位置，单位为秒（s）
+				videourl: "",
+				poster: '', //视频封面
+				seconds: 10, //广告时间
+				isHide: 1, //是否显示前置图片广告
+				ispause: 0, //是否暂停
+				ad_url: "", //广告地址
+				ad_img: "", //广告图片
+				fireTime: 5,
+				showToast: false,
+				texts: [],
+				info: [{
+					isVip: false,
+				}], //视频数据
+				commentList: {
+					list: [],
+				}, //评论列表
+				windowWidth: 280,
+				pauseHeight: 150, //暂停广告高度
+				pauseLeft: 10, //暂停广告left位置
+				pauseTop: 42, //暂停广告top位置
+				waitingLeft: 343,
+				waitingTop: 110,
+				rateLeft: 30,
+				isTry: 0, //是否是试看
+				trySeconds: 0, //试看剩余时间
+				videoAd: 0, //是否是视频广告
+				loadings: 1,
+				barHeight: plus.navigator.getStatusbarHeight(),
+				commentContent: '',
+				dbName: 'video',
+				currentTime: 0, //视频当前播放时间
+				duration: 0, // 视频总时长
+				did: '', //设备id
+				isTryEnd: 0,
+				currentline: 0, //当前播放路线（清晰度码率）
+				currentVideoType: 2, //当前播放视频类型（1为正式视频2为广告视频）
+				videoline: [{}],
+				keyheight: 0,
+				canDownload: false,
+				transfromClass: {
+					'position': 'fixed',
+					'bottom': 0,
+					'left': 0,
+					'right': 0,
+					'display': 'flex',
+					'justify-content': 'center',
+					'align-items': 'center'
+				},
+				transShow: false,
+				modeClass: ['slide-bottom'],
+				showVideoErrorTips: false,
+				showNotGoldTips: false,
+				resSize: 0, //视频大小
+				showMsgContent: '弹出内容', //提示内容
+				confirmText: '确定', //确定按钮文本
+				cancelText: '取消', //取消按钮文本
+				confirmType: 'confirm', //确定按钮处理事件
+				cancelType: 'cancel', //取消按钮处理事件
+				palyTimeKey: '', //当前视频播放时间缓存key值
+				shareImg: '../../static/imgs/share.png',
+				downImg: '../../static/imgs/download.png',
+				info: {
+					videoInfo: {
+						id: 0,
+						title: '加载中...',
+					}
+				},
+				videoContent: [],
+				adStatus: 1,
+				changeX: 0,
+				changeWidhtX: 0,
+				adSkip: 0,
+				videoLoadWidht: 365,
+				guessList: [],
+				reloadPage: false,
+				adList: [],
+				number: 0,
+				hDvdList: [],
+				isLines: false,
+				lineName: '>',
+				bigLineId: 0,
+				subLineList: [],
+				subLineId: 0,
+				setLineName: '',
+				fullScreen: false,
+				isNetwork: false,
+				isProjectionTV: true,
+				lockHieght: 110,
+				lockImg: '../../static/imgs/_lockn.png',
+				waitingFlow: '0KB/s',
+				startNetworkSize: 0,
+				isStartNetworkSize: false,
+				devList: [],
+				TVtitle: '未连接',
+				showTVcontnet: 1,
+				czTvText: '搜索投屏设备',
+				isPlay: false,
+				isLock: true,
+
+				freeWacth: {
+					count: 0,
+					free: 0
+				},
+				imageURL: '../../static/play/free.png',
+				isShowFree: false,
+
+				toTopHeight: 0,
+				unit: 'rpx',
+				author: {
+					id: 0,
+					headimgurl: '',
+					'usrname': ''
+				},
+				uri: {
+					url: '/pages/video/class',
+					t: 'tab'
+				},
+				isShowPlay: true,
+
+				playStrategy: 0, // 0普通 3 M3U8专用
+				rateList: ['0.50', '0.80', '1.00', '1.25', '1.50'], // 倍数
+				nowRate: 1, //当前倍数
+				isShowRate: false,
+				direction: -90,
+				showControl: true,
+				down: null
+			}
+		},
+		created() {
+			this.getSystemRefresh()
+			this.$nextTick(() => {
+				_self.reload();
+				_self.getNetwork();
+			})
+			uni.onKeyboardHeightChange(res => {
+				_self.keyheight = res.height;
+			})
+		},
+		onLoad(e) {
+			_self = this;
+			_self._showLoading()
+			_self.isShowPlay = true;
+			if (JSON.stringify(e) != '{}') _self.uri = JSON.parse(e.type);
+			_self.down = Down
+		},
+		onPullDownRefresh() {
+			let timer = setTimeout(() => {
+				_self.reload();
+				clearTimeout(timer);
+			}, 1000);
+		},
+		onReachBottom() {
+			_self.getCommentList();
+		},
+		onReady() {
+			_self.context = uni.createVideoContext("video1", this);
+			_self.context.playbackRate(1.5)
+		},
+		onHide() {
+			_self.context.pause();
+			let timer = setTimeout(() => {
+				_self.isShowPlay = false;
+				clearTimeout(timer);
+			}, 800);
+		},
+		onShow() {
+			if (_self.isTry != 1) {
+				_self.isShowPlay = true;
+			}
+			if (_self.showVideoErrorTips || _self.showNotGoldTips) {
+				_self.ispause = 0;
+			}
+		},
+		methods: {
+			_showLoading(text = null) {
+				this.$nextTick(() => {
+					this.$refs.cssLoading.open(text)
+				})
+			},
+			_hideLoading() {
+				this.$nextTick(() => {
+					this.$refs.cssLoading.close()
+				})
+			},
+			getSystemRefresh() {
+				let system = uni.getSystemInfoSync();
+				_self.SystemInfo = system;
+				_self.toTopHeight = system.platform == 'ios' ? 5 : 0;
+				_self.unit = system.platform == 'ios' ? 'rpx' : 'px';
+				_self.pauseLeft = (system.screenWidth - _self.windowWidth) / 2;
+				// _self.waitingLeft = _self.SystemInfo.screenWidth / 2 - 16;
+				_self.waitingLeft = _self.SystemInfo.screenWidth - 50;
+				_self.rateLeft = _self.SystemInfo.screenWidth - 60;
+			},
+			goProduction(productionId) {
+				api.jumpUrl('/pages/production/detail?id=' + productionId, 'new');
+			},
+			focusProduction(productionIndex) {
+				if (userid) {
+					uni.request({
+						url: requestProductionLikeUrl,
+						method: 'POST',
+						header: {
+							'content-type': 'application/x-www-form-urlencoded',
+						},
+						data: {
+							productionId: _self.info.productionList[productionIndex].id,
+							userId: userid,
+						},
+						success: (res) => {
+							if (res.data.Code == 200) {
+								if (_self.info.productionList[productionIndex].focus) {
+									api.showToast('取消关注成功');
+								} else {
+									api.showToast('关注成功');
+								}
+								_self.info.productionList[productionIndex].focus = !_self.info.productionList[
+									productionIndex].focus
+							} else {
+								api.showToast(res.data.Msg);
+							}
+						},
+						fail: (err) => {
+							api.showToast('关注失败');
+						},
+						complete: () => {
+							_self.showLoading = false;
+							_self._hideLoading()
+						}
+					});
+				} else {
+					_self.showLogin();
+				}
+			},
+			loadedmetadata(e) {
+				e = e.detail.height - e.detail.width;
+				_self.direction = (e > 50) ? 0 : -90;
+			},
+			setRate(r) {
+				_self.nowRate = parseFloat(r);
+				_self.context?.playbackRate(parseFloat(r));
+				_self.isShowRate = false;
+			},
+			openRate() {
+				_self.isShowRate = !_self.isShowRate;
+			},
+			getNetwork() {
+				if (_self.SystemInfo.platform == 'ios') return;
+				//console.log("所有plus api都应该在此事件发生后调用，否则会出现plus is undefined。"  
+				TrafficStats = plus.android.importClass("android.net.TrafficStats");
+				total_data = TrafficStats.getTotalRxBytes();
+				intervalId = setInterval(() => {
+					_self.getNetSpeed()
+				}, 1000);
+			},
+			getNetSpeed() {
+				traffic_data = TrafficStats.getTotalRxBytes() - total_data;
+				total_data = TrafficStats.getTotalRxBytes();
+				_self.waitingFlow = _self.bytesToSize(traffic_data);
+				//console.log(_self.bytesToSize(traffic_data));  
+			},
+			//将byte自动转换为其他单位  
+			bytesToSize(bytes) {
+				if (bytes === 0) return '0 B/s';
+				var k = 1000, // or 1024  
+					sizes = ['B/s', 'KB/s', 'MB/s', 'GB/s', 'TB/s', 'PB/s', 'EB/s', 'ZB/s', 'YB/s'],
+					i = Math.floor(Math.log(bytes) / Math.log(k));
+				return (bytes / Math.pow(k, i)).toPrecision(3) + sizes[i];
+			},
+			goAuthorHome(uid) {
+				var param = {
+					url: '/pages/video/play',
+					t: 'new'
+				}
+				api.jumpUrl('/pages/member/home_page?type=' + JSON.stringify(param) + '&uid=' + uid, 'new');
+			},
+			switchoverPlay() {
+				if (_self.videourl == '') return;
+				if (_self.SystemInfo.platform != 'android') return api.showToast('切换失败：暂不支持IOS系统', 3000);
+				_self._showLoading('正在搜索中...');
+				var Intent = plus.android.importClass("android.content.Intent");
+				var Uri = plus.android.importClass("android.net.Uri");
+				var main = plus.android.runtimeMainActivity();
+				var intent = new Intent(Intent.ACTION_VIEW);
+				var uri = Uri.parse(_self.videourl);
+				intent.setDataAndType(uri, "video/*");
+				main.startActivity(Intent.createChooser(intent, "请选择视频播放器!"));
+				let timer = setTimeout(() => {
+					api.showToast('操作成功');
+					clearTimeout(timer);
+				}, 1000)
+			},
+			searchTV() {
+				if (_self.SystemInfo.platform != 'android') return api.showToast('搜索失败：暂不支持IOS系统', 3000);
+				uni.getNetworkType({
+					success: res => {
+						if (res.networkType == 'wifi') {
+							_self.czTvText = '正在搜索中，请稍后...';
+							//_self.TVtitle = '';
+							_self.devList = [];
+							dlna.search(result => {
+								//_self.TVtitle += '通知类型:' + result.type + ' 设备名:' + result.name + ' 设备Id:' + result.id + '<br />';
+								if (result.type === 'add') {
+									_self.devList.push({
+										'id': result.id,
+										'name': result.name
+									});
+								} else {
+									_self.devList = _self.devList.filter(x => x.id != result.id);
+								}
+								_self.czTvText = '搜索投屏设备';
+							});
+						} else {
+							_self.czTvText = '请在WIFI网络下使用投屏功能';
+						}
+					}
+				});
+			},
+			startTV(id, tvName) {
+				_self._showLoading('连接中,请稍后...');
+				dlna.play({
+					'id': id,
+					'url': _self.videourl,
+					'title': _self.info.videoInfo.title
+				}, result => {
+					if (result.type == 'success') {
+						api.showToast('投屏成功', 2000);
+						_self.TVtitle = '设备名：' + tvName;
+					} else {
+						api.showToast('投屏失败：' + result.msg, 3000);
+					}
+				})
+			},
+			setLine(e, i) {
+				_self.bigLineId = i;
+				_self.subLineList = e.list;
+			},
+			setSubLine(e, i) {
+				if (i == _self.subLineId) return;
+				if (_self.hDvdList.length < 2) {
+					_self.selectedVideo(e.list, i + 1);
+				} else {
+					_self.subLineId = i;
+				}
+				_self.hDvdList = e.list;
+				var setName = '[' + _self.info.hDvd[_self.bigLineId]['name'] + '>' + e.name + ']';
+				_self.setLineName = setName;
+			},
+			// 切换
+			selectLine() {
+				_self.isLines = !_self.isLines;
+				if (_self.isLines) {
+					_self.lineName = '<';
+				} else {
+					_self.lineName = '>';
+				}
+			},
+			// 选集
+			selectedVideo(e, i = '') {
+				if (userid) {
+					if (_self.seconds > 0) return api.showToast('正在播放广告，禁止切换', 2000);
+					if (!_self.info.isVip) {
+						if (!_self.info.alreadyBuy && _self.info.videoInfo.gold > 0) return api.showToast('付费视频，请先购买视频',
+							2000);
+					}
+					_self._showLoading('正在切换...');
+					if (i) _self.subLineId = i - 1;
+					_self.number = e.id;
+					_self.videourl = e.url
+					var palyTimes = 0;
+					var palyTimeKey = 'videoPalyTime' + videoId + '_' + e.id;
+					//console.log(palyTimeKey)
+					uni.getStorage({
+						key: palyTimeKey,
+						success: (res) => {
+							palyTimes = res.data.data;
+							if (!palyTimes) palyTimes = res.data;
+							_self.initialtime = palyTimes;
+						},
+						fail: () => {
+							_self.initialtime = 0;
+						},
+						complete: () => {
+							//console.log('s:'+_self.initialtime)
+							_self.context.seek(_self.initialtime);
+							_self.context.play();
+							uni.setStorage({
+								key: videoId + '',
+								data: e.id,
+								success: () => {
+									//_self.playVideo(e.videoId);
+									//console.log(e.id)
+								},
+								fail: () => {
+									return false;
+								},
+								complete: () => {
+									if (_self.initialtime > 0) {
+										api.showToast('已恢复至' + _self.formatSeconds(_self
+											.initialtime) + '秒开始观看', 2000);
+									} else {
+										_self._hideLoading();
+									}
+								}
+							});
+						}
+					});
+				} else {
+					uni.showModal({
+						content: '登录后才能切换',
+						confirmText: '登录',
+						success: (res) => {
+							if (res.confirm) {
+								_self.gotoLogin();
+							}
+						}
+					});
+				}
+			},
+			selectEdVideo(e) {
+				uni.request({
+					url: api.apiData.getAd + '/id/2',
+					method: 'GET',
+					header: {
+						'Content-type': 'application/x-www-form-urlencoded'
+					},
+					success: (e) => {
+						var data = e.data.Data;
+						if (data.Code == 201) return api.showToast('服务器连接失败，请检查网络是否正常', 2000);
+						//console.log(data.adInfo.type)
+						if (data.adInfo.length > 0) {
+							_self.seconds = data.adTime;
+							if (data.adInfo.type == 'video') {
+								_self.videourl = data.adInfo.img;
+								//_self.context.seek(0);
+								_self.context.play();
+							} else {
+								_self.isHide = 1;
+								_self.ad_img = data.adInfo.img;;
+								_self.context.stop();
+							}
+						} else {
+							_self.videourl = e.url
+							_self.context.seek(0);
+						}
+						_self._hideLoading();
+					},
+					fail: () => {
+						api.showToast('服务器连接失败，请检查网络是否正常', 2000);
+					}
+				});
+				//_self.beforeAd();
+			},
+			touchstart(e) {
+				//console.log('点击'X)
+				//_self.changeX = e.changedTouches[0].pageX-7;
+			},
+			changeTime(e) {
+				//console.log('托动')
+				_self.changeWidhtX = e.changedTouches[0].pageX - 7;
+				//_self.changeX = e.detail.x;
+			},
+			touchEnd(e) {
+				//var total = e.currentTarget.style.width;
+				var pageX = e.changedTouches[0].pageX - 7;
+				_self.changeX = _self.changeWidhtX = pageX;
+				_self.setVideoPlayTime(1);
+			},
+			// 播放视频
+			buyPlayVideo() {
+				_self.seconds = -1;
+				_self.videourl = _self.info.videoInfo.url;
+				_self.controls = true;
+				_self.isProjectionTV = true;
+				_self.context.play();
+			},
+			// 同步播放时长，type,1为快进快进同步视频时长，2为正常播放时长同步进度条
+			setVideoPlayTime(type) {
+				var total = parseInt((_self.videoLoadWidht / 750) * uni.getSystemInfoSync().windowWidth);
+				if (type == 1) {
+					// 计算出当前播放比例 duration / currentTime
+					var progress = (_self.changeX / total * 100).toFixed(2);
+					// 当前视频播放时长，秒
+					var nowVideoTime = ((_self.duration / 100) * progress).toFixed(2);
+					if (parseInt(nowVideoTime) < 1) nowVideoTime = 0;
+					if (parseInt(nowVideoTime) > parseInt(_self.duration)) nowVideoTime = _self.duration;
+					_self.context.seek(nowVideoTime - 1);
+				} else {
+					var progress = (_self.currentTime / _self.duration * 100).toFixed(2);
+					var nowVideoTime = parseInt((total / 100) * progress);
+					_self.changeX = _self.changeWidhtX = nowVideoTime;
+				}
+			},
+			playDemo() {
+				_self.context.stop();
+				uni.navigateTo({
+					url: "/pages/video/index"
+				});
+			},
+			videoWaiting(e) {
+				//console.log(e)
+				if (_self.isTry == 0 && _self.currentVideoType == 1) {
+					_self.isStartNetworkSize = true;
+					_self.startNetworkSize = parseInt(_self.currentTime);
+					if (_self.SystemInfo.platform == 'android') {
+						//api.showToast("网络卡，换个播放器试试？");
+					} else {
+						_self.getNetworkSize();
+					}
+				}
+			},
+			getNetworkSize() {
+				let timer = setTimeout(() => {
+					var networkSize = api.randomWord(true, true, 1, 2);
+					_self.waitingFlow = parseInt(networkSize) + 'Kb/s';
+					if (_self.isStartNetworkSize) _self.getNetworkSize();
+					clearTimeout(timer);
+				}, 2000);
+			},
+			lockVideo() {
+				_self.isLock = !_self.isLock;
+				if (_self.isLock) {
+					_self.enableProgress = _self.controls = true;
+					_self.lockImg = '../../static/imgs/_lockn.png'
+				} else {
+					_self.enableProgress = _self.controls = false;
+					_self.lockImg = '../../static/imgs/_lock.png'
+				}
+			},
+			playEnd() {
+				//_self.context.pause();
+				//_self.onpause();
+			},
+			reload() {
+				//console.log(uni.getStorageSync("userInfo"));	
+				_self.loadings = 1;
+				_self.videourl = "";
+				_self.poster = ''; //视频封面
+				_self.seconds = -1; //广告时间
+				_self.isHide = 1; //是否显示前置图片广告
+				_self.ispause = 0; //是否暂停
+				_self.ad_url = ""; //广告地址
+				_self.ad_img = ""; //广告图片
+				_self.isTry = 0; //是否是试看
+				_self.trySeconds = 0; //试看剩余时间
+				_self.videoAd = 0; //是否是视频广告
+				_self.showVideoErrorTips = false;
+				_self.showNotGoldTips = false;
+				_self.currentVideoType = 2;
+				_self.isTryEnd = 0;
+				_self.currentTime = 0;
+				_self.showMsgContent = '弹出内容';
+				_self.confirmText = '确定';
+				_self.cancelText = '取消';
+
+				lastCommentId = 0;
+				userid = this.getUserId();
+				// 设备ID
+				uni.getStorage({
+					key: 'mobileDid_' + api.appkey,
+					success: (res) => {
+						_self.did = res.data;
+						if (!_self.did) _self.did = res.data;
+					},
+					complete() {
+						uni.getStorage({
+							key: 'vid',
+							success: (res) => {
+								videoId = res.data.data;
+								if (!videoId) videoId = res.data;
+								_self.getData();
+								_self.getCommentList();
+							},
+							fail() {
+								if (!videoId) api.showToast('系统繁忙');
+							}
+						});
+					}
+				});
+			},
+			onInput(e) {
+				//传出值
+				this.$emit('input', e.target.value)
+			},
+			keyboardheightchange(e) {
+				this.transShow = true;
+				//console.log(e.detail);
+				//_self.keyheight = e.detail.height > 0 ? e.detail.height : 0;
+				/* if(_self.SystemInfo.platform == "android"){
+					_self.keyheight = e.detail.height+plus.navigator.getStatusbarHeight();
+				}else{ */
+				_self.keyheight = e.detail.height;
+				//}
+			},
+			// 点赞
+			like() {
+				//console.log(1)
+				if (userid) {
+					_self._showLoading('处理中...');
+					uni.request({
+						url: requestLikeUrl,
+						method: 'POST',
+						header: {
+							'content-type': 'application/x-www-form-urlencoded',
+						},
+						data: {
+							videoId: videoId,
+							userId: userid,
+						},
+						success: (res) => {
+							//console.log(res);
+							if (res.data.Code == 200) {
+								api.showToast('点赞成功', 2000);
+								_self.info.isLike = 1;
+								//_self.info.likeSum++;
+								var str = _self.info.likeSum + '';
+								if (str.indexOf("w") != -1) {
+
+								} else {
+									_self.info.likeSum++;
+								}
+							} else {
+								api.showToast(res.data.Msg, 2000);
+							}
+						},
+						fail: (err) => {
+							api.showToast(err.errMsg, 2000);
+						},
+						complete: () => {
+							_self.showLoading = false;
+							_self._hideLoading()
+						}
+					});
+				} else {
+					_self.showLogin();
+				}
+			},
+			// 收藏视频
+			collection(e) {
+				if (userid) {
+					_self._showLoading('处理中...');
+					uni.request({
+						url: requestAddCollectionUrl,
+						method: 'POST',
+						header: {
+							'content-type': 'application/x-www-form-urlencoded',
+						},
+						data: {
+							videoId: videoId,
+							userId: userid,
+						},
+						success: (res) => {
+							//console.log(res);
+							if (res.data.Code == 200) {
+								api.showToast('收藏成功', 2000);
+								_self.info.isCollection = 1;
+							} else {
+								api.showToast(res.data.Msg, 2000);
+							}
+						},
+						fail: (err) => {
+							api.showToast('收藏失败', 2000);
+						},
+						complete: () => {
+							_self.showLoading = false;
+							_self._hideLoading()
+						}
+					});
+				} else {
+					_self.showLogin();
+				}
+			},
+			// 评论视频
+			comment() {
+				if (userid) {
+					_self._showLoading('发送中...');
+					uni.request({
+						url: requestAddCommentUrl,
+						method: 'POST',
+						header: {
+							'content-type': 'application/x-www-form-urlencoded',
+						},
+						data: {
+							videoId: videoId,
+							userId: userid,
+							content: _self.commentContent,
+						},
+						success: (res) => {
+							if (res.data.Code == 200) {
+								if (res.data.Msg == '评论成功') {
+									//console.log(_self.info.member);
+									var newcomment = {
+										"content": _self.commentContent,
+										"last_time": '',
+										"username": _self.info.member.username,
+										"headimgurl": _self.info.member.headimgurl,
+										"nickname": _self.info.member.nickname,
+									}
+									_self.commentList.list.unshift(newcomment);
+									uni.hideKeyboard();
+									api.showToast('评论成功', 2000);
+								} else {
+									api.showToast(res.data.Msg, 2000);
+								}
+								_self.commentContent = '';
+								//console.log(res);
+							} else {
+								api.showToast(res.data.Msg, 2000);
+							}
+						},
+						fail: (err) => {
+							api.showToast('评论失败', 2000);
+						},
+						complete: () => {
+							_self.showLoading = false;
+							_self._hideLoading()
+						}
+					});
+				} else {
+					_self.showLogin();
+				}
+			},
+			showLogin(e) {
+				uni.showModal({
+					content: '您还没有登录，请先登录后再操作！',
+					cancelText: '取消',
+					confirmText: '登录',
+					success: (res) => {
+						if (res.confirm) {
+							_self.gotoLogin();
+						} else if (res.cancel) {
+
+						}
+					}
+				});
+			},
+			startVideo(e) {
+				_self.poster = _self.info.videoInfo.thumbnail;
+				if (_self.info.videoInfo.gold > 0) {
+					//非免费视频
+					if (userid) {
+						//已经登录
+						//console.log('已经登录');
+						if (_self.info.alreadyBuy == 1) {
+							_self.beforeAd();
+						} else {
+							//需要扣费
+							_self.cancelText = '试看视频';
+							_self.confirmText = '扣费观看';
+							_self.showMsgContent = '该视频需要 ' + _self.info.videoInfo.gold + ' 金币，是否扣费观看？';
+							_self.showNotGoldTips = true;
+							_self.confirmType = 'buyVideo';
+							_self.cancelType = 'tryPaly';
+						}
+					} else {
+						//未登录
+						//console.log('未登录');
+						_self.cancelText = '立即登录';
+						_self.confirmText = '试看体验';
+						//_self.showMsgContent = '此视频为收费视频，游客可试看'+_self.info.feeLook+'秒';
+						_self.showMsgContent = _self.info.watch > 0 ? '游客可试看' + _self.info.feeLook + 's，注册可免费观看' + _self
+							.info.watch + '部视频' : '游客可试看' + _self.info.feeLook + '秒，登录后无限制';
+						_self.showNotGoldTips = true;
+						_self.confirmType = 'tryPaly';
+						_self.cancelType = 'gotoLogin';
+					}
+				} else {
+					_self.beforeAd();
+				}
+			},
+			getData(e) {
+				uni.getStorage({
+					key: videoId + '',
+					success: (res) => {
+						//console.log(res.data)
+						_self.number = res.data;
+					},
+					fail: () => {
+						_self.number = 0;
+					},
+					complete: () => {
+						uni.request({
+							url: requestUrl,
+							method: 'POST',
+							header: {
+								'content-type': 'application/x-www-form-urlencoded',
+							},
+							data: {
+								videoId: videoId,
+								userId: userid,
+								did: _self.did,
+								subId: _self.number,
+								sys: _self.SystemInfo.platform,
+							},
+							success: (res) => {
+								//console.log('request data', videoId);
+								//console.log('did', _self.did);
+								//console.log('request data', res);
+								var r = res.data;
+								if (r.Code == 201) {
+									api.showToast(r.Msg, 1500);
+									let timer = setTimeout(() => {
+										_self.back();
+										clearTimeout(timer);
+									}, 1000)
+									return;
+								}
+								_self.playStrategy = r.Data.videoInfo.url.indexOf(".m3u8") != -1 ?
+									3 : 0;
+								_self.info = r.Data;
+								_self.adSkip = _self.info.adSkip
+								_self.videoline = r.Data.videoInfo.videoline;
+								_self.freeWacth = _self.info.freeWacth;
+								_self.author = _self.info.author;
+
+								_self.canDownload = r.Data.isdownload == 1 && r.Data.download == 1
+								if (!_self.reloadPage) _self.guessList = _self.info.guess;
+								if (_self.info.isHDvd == 0) {
+									_self.hDvdList = _self.info.hDvd;
+									if (_self.number == 0 && _self.hDvdList.length) _self.number =
+										_self.hDvdList[0]['id'];
+								} else {
+									_self.hDvdList = _self.info.hDvd[0]['list'][0]['list'];
+									_self.info.videoInfo.url = _self.hDvdList[_self.number]['url'];
+									_self.subLineList = _self.info.hDvd[0]['list'];
+									_self.bigLineId = 0;
+									_self.subLineId = 0;
+									if (_self.number == 0 && _self.hDvdList.length) _self.number =
+										_self.info.hDvd[0]['list']['id'];
+								}
+								_self.palyTimeKey = 'videoPalyTime' + videoId + '_' + _self.number;
+								if (_self.info.videoInfo.click > 9999) _self.info.videoInfo.click =
+									(_self.info.videoInfo.click / 10000).toFixed(2) + 'w';
+								let videoContent = _self.info.videoInfo.info;
+								if (videoContent.length > 5) {
+									let arr = htmlParser(videoContent);
+									let newArr = [];
+									arr.forEach((i, index) => {
+										newArr.push(i)
+									})
+									_self.videoContent = newArr;
+									//console.log(_self.videoContent)
+								}
+								if (_self.info.adList.length) _self.adList = _self.info.adList;
+								if (_self.info.ad.before == null) {
+									if (_self.info.videoInfo.gold < 1) _self.videourl = _self.info
+										.videoInfo.url;
+									_self.currentVideoType = 1;
+								}
+								_self.loadings = 0;
+								let timer = setTimeout(() => {
+									_self.startVideo();
+									clearTimeout(timer);
+								}, 1000);
+							},
+							fail: (err) => {
+								api.showToast('连接服务器超时，请联系平台客服');
+								let timer = setTimeout(() => {
+									_self.back();
+									clearTimeout(timer);
+								}, 1000)
+							},
+							complete: () => {
+								_self.loading = false;
+								_self.isShowFree = true;
+								let timer = setTimeout(() => {
+									_self.showLoading = false;
+									clearTimeout(timer);
+								}, 800)
+								_self.isDownloadStatus();
+							}
+						});
+					}
+				});
+			},
+			jumpUrl(uri = 'login/login', type = 'new') {
+				api.jumpUrl('/pages/' + uri, type);
+			},
+			getCommentList(e) {
+				uni.request({
+					url: requestCommentListUrl,
+					method: 'POST',
+					header: {
+						'content-type': 'application/x-www-form-urlencoded',
+					},
+					data: {
+						videoId: videoId,
+						lastId: lastCommentId,
+						limit: 8,
+					},
+					success: (res) => {
+						if (res.data.Data) {
+							if (lastCommentId == 0) {
+								//console.log(res.data.Data);
+								_self.commentList = res.data.Data;
+							} else {
+								var list = res.data.Data.list;
+								_self.commentList.list = _self.commentList.list.concat(list);
+							}
+							_self.commentList.count = res.data.Data.count;
+						} else {
+							if (res.data.Code == 201) api.showToast(res.data.Msg, 2000);
+						}
+						if (_self.commentList.list) {
+							if (_self.commentList.list.length) {
+								lastCommentId = _self.commentList.list[_self.commentList.list.length - 1].id;
+							}
+						}
+					},
+					fail: (err) => {
+						//console.log('request fail', err);
+						api.showToast('连接服务器失败')
+					},
+					complete: () => {
+						_self.showLoading = false;
+					}
+				});
+			},
+			onstart(e) {
+				_self.ispause = 0;
+				_self._hideLoading()
+				let timer = setTimeout(() => {
+					_self.isStartNetworkSize = false;
+					clearTimeout(timer);
+				}, 1000);
+			},
+			onpause(e) {
+				//暂停
+				if (_self.videoAd != 1) {
+					_self.ad_url = _self.info.ad.pause.url;
+					_self.ad_img = _self.info.ad.pause.img;
+					_self.ispause = 1;
+				} else {
+					_self.context.play();
+				}
+			},
+			stopAdTime() {
+				_self.isHide = 1;
+				_self.videourl = _self.info.videoInfo.url;
+				_self.currentVideoType = 1;
+				_self.play();
+			},
+			// 倒计时 1开始，2暂停
+			countDown() {
+				var t = 0;
+				if (_self.videoAd) t = 1;
+				if (_self.seconds < t) {
+					_self.stopAdTime();
+					_self.seconds = -1;
+				} else {
+					let timer = setTimeout(() => {
+						if (_self.seconds > -1) {
+							if (!_self.videoAd) _self.seconds--
+							_self.countDown();
+						}
+						clearTimeout(timer);
+					}, 1000);
+				}
+			},
+			countTryDown() {
+				let timer = setTimeout(() => {
+					if (_self.trySeconds > 0) {
+						_self.trySeconds--
+						this.countTryDown()
+					}
+					clearTimeout(timer);
+				}, 1000);
+			},
+			skip() {
+				if (_self.info.isVip) {
+					this.videourl = this.info.videoInfo.url;
+					_self.isHide = 1;
+					_self.seconds = 0;
+					_self.currentVideoType = 1;
+					_self.play();
+				} else {
+					api.showToast('只有VIP才能跳过广告', 2000);
+				}
+			},
+			open() {
+				_self.jumpAdUrl(_self.ad_url, 'web');
+			},
+			play(ev) {
+				_self.videoAd = 0;
+				if (_self.isTry == 1) {
+					_self.controls = false;
+					_self.trySeconds = _self.info.feeLook;
+					//_self.countTryDown();
+					_self.initialtime = _self.adSkip;
+					_self.context.play();
+				} else {
+					var palyTimes = 0;
+					uni.getStorage({
+						key: _self.palyTimeKey,
+						success: (res) => {
+							palyTimes = res.data.data;
+							if (!palyTimes) {
+								palyTimes = res.data;
+							}
+							_self.initialtime = palyTimes;
+						},
+						fail: () => {
+							_self.initialtime = 0;
+						},
+						complete: () => {
+							_self.controls = true;
+							if (_self.SystemInfo.platform == "android") _self.isPlay = true;
+							//TOP
+							let timer = setTimeout(() => {
+								if (_self.initialtime > 0) api.showToast('已恢复至' + _self.formatSeconds(
+									_self.initialtime) + '处开始观看', 2000);
+								clearTimeout(timer);
+							}, 3000);
+						}
+					});
+				}
+			},
+			formatSeconds(value) {
+				var theTime = parseInt(value); // 秒
+				var middle = 0; // 分
+				var hour = 0; // 小时
+				if (theTime > 60) {
+					middle = parseInt(theTime / 60);
+					theTime = parseInt(theTime % 60);
+					if (middle > 60) {
+						hour = parseInt(middle / 60);
+						middle = parseInt(middle % 60);
+					}
+				}
+				var result = "" + parseInt(theTime) + "秒";
+				if (middle > 0) {
+					result = "" + parseInt(middle) + "分" + result;
+				}
+				if (hour > 0) {
+					result = "" + parseInt(hour) + "小时" + result;
+				}
+				return result;
+			},
+			// 前置广告
+			beforeAd(event) {
+				//console.log(1)
+				if (_self.info.adTime) {
+					_self.seconds = _self.info.adTime;
+					_self.ad_url = _self.info.ad.before.url;
+					_self.ad_img = _self.info.ad.before.img;
+					if (_self.info.ad.before.type == 'video') {
+						_self.isHide = 1;
+						_self.currentVideoType = 2;
+						_self.controls = false;
+						_self.videourl = _self.info.ad.before.img;
+						_self.videoAd = 1;
+						_self.context = uni.createVideoContext("video1", this);
+						_self.context.play();
+					} else {
+						_self.isHide = 0;
+					}
+					_self.adStatus = 1;
+					_self.countDown();
+				} else {
+					_self.seconds = -1;
+					_self.videourl = _self.info.videoInfo.url;
+					_self.play();
+				}
+			},
+			pause(event) {
+				_self.context.pause();
+			},
+			stop() {
+				_self.context.stop();
+			},
+			controlstoggle(e) {
+				_self.showControl = e.detail.show;
+				if (_self.fullScreen) {
+					var lockHieght = _self.SystemInfo.screenWidth;
+					if (_self.showControl) {
+						_self.isNetwork = false;
+					} else {
+						_self.isNetwork = true;
+						_self.lockHieght = lockHieght / 2 - 30;
+					}
+					//console.log(_self.SystemInfo);
+				}
+			},
+			fullscreenchange(e) {
+				_self.getSystemRefresh()
+				// _self.videoTitle = _self.info.videoInfo.title
+				setTimeout(() => {
+					var lockHieght = _self.SystemInfo.screenWidth;
+					_self.fullScreen = e.detail.fullScreen;
+					if (_self.fullScreen) {
+						// 全屏
+						// console.log('windowWidth', _self.windowWidth)
+						// _self.pauseLeft = (_self.SystemInfo.screenHeight - _self.windowWidth) / 2;
+						_self.pauseLeft = _self.windowWidth
+						_self.pauseTop = (lockHieght - _self.pauseHeight) / 6;
+						_self.lockHieght = lockHieght / 2 - 30;
+						_self.isNetwork = true;
+						_self.waitingLeft = _self.SystemInfo.screenHeight / 2 - 16;
+						_self.waitingTop = lockHieght / 4 - 15;
+						console.log(lockHieght)
+						_self.rateLeft = _self.SystemInfo.screenWidth - 150;
+						console.log(_self.SystemInfo.screenWidth)
+						_self.isProjectionTV = false;
+						plus.screen.unlockOrientation()
+						plus.screen.lockOrientation('landscape-primary');
+					} else {
+						// _self.pauseLeft = (lockHieght - _self.windowWidth) / 2;
+						_self.pauseLeft = _self.windowWidth / 4
+						_self.pauseTop = 42;
+						_self.isLock = _self.isNetwork = false;
+						_self.enableProgress = _self.controls = true;
+						// _self.waitingLeft = lockHieght / 2 - 16;
+						_self.waitingLeft = _self.SystemInfo.screenHeight - 50
+						_self.waitingTop = 110;
+						_self.rateLeft = _self.SystemInfo.screenHeight - 60;
+						_self.lockHieght = lockHieght / 2 - 70;
+						_self.isProjectionTV = true;
+						//退出全屏后，将页面强制锁定竖屏
+						plus.screen.unlockOrientation()
+						plus.screen.lockOrientation('portrait-primary');
+					}
+				}, 250)
+			},
+			// 实时进度
+			timeupdate(e) {
+				//console.log(e);
+				var currentTime = e.detail.currentTime;
+				var duration = e.detail.duration;
+				_self.duration = duration;
+				_self.currentTime = currentTime;
+				if (parseInt(_self.currentTime) > _self.startNetworkSize) _self.isStartNetworkSize = false;
+				_self.ispause = 0;
+				// 自定义进度条
+				if (currentTime > 0 && _self.isTryEnd != 1) {
+					_self.showVideoErrorTips = false;
+					_self.showNotGoldTips = false;
+				}
+				if (_self.currentVideoType == 2) {
+					if (parseInt(duration) > 0 && _self.info.adTime > 0) {
+						_self.seconds = parseInt(duration) - parseInt(currentTime) - 1;
+					}
+				}
+				//console.log(0)
+				if (_self.isTry == 1 && _self.currentVideoType == 1) {
+					let feeLook = _self.info.feeLook + _self.adSkip
+					if (_self.trySeconds != 0) {
+						_self.trySeconds = feeLook - parseInt(currentTime);
+					}
+					if (currentTime > feeLook && _self.isTryEnd != 1) {
+						_self.isTryEnd = 1;
+						_self.stop();
+						//试看结束
+						if (userid) {
+							//已经登录
+							_self.cancelText = '扣费观看';
+							_self.confirmText = '升级VIP';
+							_self.showMsgContent = '已试看结束，升级VIP无限观看哦';
+							_self.showNotGoldTips = true;
+							_self.confirmType = 'gotoRecharge';
+							_self.cancelType = 'buyVideo';
+						} else {
+							//未登录
+							_self.cancelText = '重新观看';
+							_self.confirmText = '立即登录';
+							//_self.showMsgContent = '该视频试看结束，请登录或重新试看';
+							_self.showMsgContent = _self.info.watch > 0 ? '试看结束，注册账号可免费观看' + _self.info.watch + '部视频' :
+								'视频已试看结束，请登录或重新试看';
+							_self.showNotGoldTips = true;
+							_self.confirmType = 'gotoLogin';
+							_self.cancelType = 'againTry';
+						}
+					}
+				} else {
+					// 如果实时进度时长大于总时长则终止播放事件
+					if (parseInt(currentTime) > parseInt(duration)) _self.setVideoPaust(duration);
+					_self.palyTimeKey = 'videoPalyTime' + videoId + '_' + _self.number;
+					uni.setStorage({
+						key: _self.palyTimeKey,
+						data: parseInt(_self.currentTime) - 10,
+						success: () => {
+							//console.log('success');
+						}
+					});
+				}
+			},
+			setVideoPaust(endTime) {
+				_self.currentTime = endTime;
+				_self.context.seek(endTime);
+				_self.context.pause();
+			},
+			getUserId() {
+				var isLogin = api.getLogins();
+				//console.log(uni.getStorageSync("userInfo"));
+				return isLogin ? isLogin.userId : 0
+			},
+			gotoLogin() {
+				uni.setStorage({
+					key: 'sourceUrl',
+					data: '/pages/video/play',
+					success: () => {
+						api.jumpUrl('/pages/login/login?vid=' + videoId, 'new');
+					},
+					fail: () => {
+						api.showToast('网络连接失败，请检查网络是否正常', 2000);
+					}
+				});
+			},
+			playVideo(vid) {
+				uni.setStorage({
+					key: 'vid',
+					data: vid,
+					success: () => {
+						api.jumpUrl('/pages/video/play?type=' + JSON.stringify(_self.uri), 'new');
+					}
+				});
+			},
+			back() {
+				if (_self.uri.url == '/pages/index/index') {
+					_self.uri.url = '/pages/video/class'
+				}
+				api.jumpUrl(_self.uri.url, _self.uri.t);
+			},
+			showFire() {
+				if (_self.fireTime > 0) {
+					_self.showToast = true
+					_self.texts = ['金币不足，请先充值', _self.fireTime + "秒后自动进入充值页面"]
+					_self.fireTime--
+					setTimeout(() => {
+						_self.showFire()
+					}, 1000)
+				} else {
+					_self.fireTime = 5
+					_self.showToast = false
+					_self.gotoRecharge()
+				}
+			},
+			// 购买视频
+			buyVideo(e) {
+				//console.log(api.apiData.buyVideo);
+				uni.request({
+					url: api.apiData.buyVideo,
+					method: 'POST',
+					header: {
+						'content-type': 'application/x-www-form-urlencoded',
+					},
+					data: {
+						videoId: videoId,
+						userId: userid,
+						did: _self.did,
+					},
+					success: (res) => {
+						_self._hideLoading()
+						if (res.data.Code != 200) {
+							_self.showNotGoldTips = true;
+							if ('金币不足，请先充值' == res.data.Msg) {
+								_self.showFire()
+							} else {
+								api.showToast(res.data.Msg, 2000);
+							}
+						} else {
+							_self.reloadPage = true;
+							//_self.playVideo(videoId);
+							if (e == 2) {
+								_self.buyPlayVideo();
+								api.showToast('购买成功', 1000);
+								//console.log(2)
+							} else {
+								_self.reload();
+								//console.log(1)
+							}
+						}
+					},
+					fail: () => {
+						// 加载失败提示
+						api.showToast('网络连接失败，请检查网络是否正常', 2000);
+					}
+				});
+			},
+			showTV(e) {
+				uni.getNetworkType({
+					success: (res) => {
+						if (res.networkType == 'wifi') {
+							_self.showTVcontnet = 2;
+							_self.togglePopup('bottom', 'introduction');
+						} else {
+							api.showToast('投屏功能只能在WIFI网络下使用', 2000);
+						}
+					}
+				});
+			},
+			//显示简介
+			showIntroduction(e) {
+				_self.showTVcontnet = 1;
+				_self.togglePopup('bottom', 'introduction');
+			},
+			togglePopup(type, open) {
+				this.type = type
+				this.$nextTick(() => {
+					this.$refs['show' + open].open()
+				})
+			},
+			cancel(type) {
+				this.$refs['show' + type].close()
+			},
+			onfail(e) {
+				_self._hideLoading()
+				if (_self.currentVideoType == 2) {
+					// console.log(_self.seconds)
+				} else {
+					_self.showVideoErrorTips = true;
+					// api.showToast('视频资源不存在', 5000);
+				}
+			},
+			onloadedmetadata(e) {
+				if (_self.currentVideoType == 2) {
+					return false;
+				}
+			},
+			tryPaly() {
+				//console.log(_self.videourl)
+				_self.showNotGoldTips = false;
+				_self.currentVideoType = 1;
+				_self.currentTime = 0;
+				_self.initialtime = 0;
+				_self.isTryEnd = 0;
+				_self.ispause = 0;
+				_self.isTry = 1;
+				_self.play(9);
+			},
+			gotoRecharge() {
+				api.jumpUrl('/pages/recharge/recharge?type=2&vid=' + videoId, 'new');
+			},
+			//切换画质
+			changeline(e, t) {
+				if (userid) {
+					//console.log(_self.seconds)
+					if (_self.seconds > 0) return api.showToast('正在播放广告，禁止切换画质', 2000);
+					_self._showLoading('正在切换...');
+					if (_self.currentline == e) return api.showToast('当前已经是[' + t + ']', 2000);
+					if (!_self.info.isVip) return api.showToast('只有vip才能切换画质', 2000);
+					//console.log(JSON.stringify(e));
+					_self.videourl = _self.info.videoInfo.videoline[e].url;
+					_self.currentline = e;
+					//console.log(_self.currentline);
+					_self.initialtime = _self.currentTime;
+					_self.context.play();
+					api.showToast('已切换至[' + t + ']', 2000);
+				} else {
+					uni.showModal({
+						content: '登录后才能切换',
+						confirmText: '登录',
+						success: (res) => {
+							if (res.confirm) {
+								_self.gotoLogin();
+							}
+						}
+					});
+				}
+				//currentTime
+			},
+			// 视频弹出框确定按钮点击事件
+			clickConfirm(e) {
+				_self.clickCancelBt(e, 1);
+			},
+			// 视频弹出框取消按钮点击事件
+			clickCancelBt(e, t = 2) {
+				var _event = (t == 1) ? _self.confirmType : _self.cancelType;
+				//console.log(t)
+				switch (_event) {
+					case 'buyVideo':
+						_self.buyVideoTig(t);
+						break;
+					case 'tryPaly':
+						_self.isTry = 1;
+						_self.beforeAd();
+						//console.log(1)
+						break;
+					case 'againTry':
+						_self.tryPaly();
+						break;
+					default:
+						eval(e);
+				}
+				_self.showNotGoldTips = false;
+			},
+			buyVideoTig(e) {
+				uni.showModal({
+					title: '温馨提示',
+					content: '需要扣除' + _self.info.videoInfo.gold + '金币才能观看《' + _self.info.videoInfo.title + '》',
+					cancelText: '考虑一下',
+					confirmText: '扣费观看',
+					success: (res) => {
+						if (res.confirm) {
+							_self._showLoading('加载中...');
+							_self.buyVideo(e);
+							_self.showNotGoldTips = false;
+						} else if (res.cancel) {
+							_self.showNotGoldTips = true;
+						}
+					}
+				});
+			},
+			isDownloadStatus() {
+				if (!userid) return;
+				if (_self.info.videoInfo.id == 0) return;
+				getApp().globalData.task.isDown(_self.info.videoInfo.id).then(r => {
+					if (r.length) {
+						isdownload = 1;
+						_self.downImg = '/static/imgs/download_ok.png';
+					}
+				});
+			},
+			download() {
+				if (userid) {
+					//console.log(_self.info.videoInfo);
+					if (isdownload == 1) return api.showToast('该视频已在下载列表中', 2000);
+					if (_self.info.isHDvd == 1) return api.showToast('剧集暂不支持下载', 2000);
+					if (!_self.info.isVip) return api.showToast('该视频只有VIP才能下载', 2000);
+					if (_self.info.videoInfo.url.length < 3) return api.showToast('该视频暂不支持下载', 2000);
+					_self._showLoading('加载中...');
+					uni.request({
+						url: api.apiData.vipWeekDowns,
+						method: 'POST',
+						header: {
+							'content-type': 'application/x-www-form-urlencoded',
+						},
+						data: {
+							vid: videoId,
+							uid: userid,
+							did: _self.did,
+						},
+						success: (res) => {
+							let d = res.data;
+							if (d.Code == 200) {
+								var data = {
+									videoId: _self.info.videoInfo.id,
+									title: _self.info.videoInfo.title,
+									url: _self.info.videoInfo.download_url,
+									poster: _self.info.videoInfo.thumbnail,
+									videoSize: 0,
+								};
+								_self.down.addTask(data).then(r => {
+									isdownload = 1;
+									_self.downImg = '/static/imgs/download_ok.png';
+									uni.getNetworkType({
+										success: res => {
+											api.showToast('已添加下载任务，当前网络：' + res
+												.networkType, 2000);
+										}
+									});
+								}).catch(e => {
+									isdownload = 0;
+									api.showToast('执行下载任务失败');
+								});
+							} else {
+								api.showToast(d.Msg, 2000);
+							}
+						},
+						fail: () => {
+							api.showToast('下载失败，请检查网络是否正常', 2000);
+						}
+					});
+				} else {
+					isdownload = 0;
+					uni.showModal({
+						content: '要登录后才可以下载',
+						confirmText: '登录',
+						success: (res) => {
+							if (res.confirm) {
+								_self.gotoLogin();
+							}
+						}
+					});
+				}
+			},
+			// 跳转
+			jumpAdUrl(uri, type = 'new') {
+				if (uri == '#' || uri == '') return;
+				api.jumpUrl(uri, type);
+			},
+
+		}
+	}
+</script>
+
+<style>
+	.search-TV {
+		text-align: center;
+		background-color: #1AAD19;
+		margin-top: 5px;
+		margin-bottom: 5px;
+		height: 30px;
+		line-height: 30px;
+		font-size: 13px;
+		color: #FFFFFF;
+		border-radius: 5px;
+	}
+
+	.is-vip {
+		width: 32px;
+		height: 16px;
+		position: absolute;
+		z-index: 1;
+	}
+
+	.load-img {
+		position: fixed;
+		top: 0;
+		bottom: 0;
+		left: 0;
+		right: 0;
+		z-index: 1;
+		justify-content: center;
+		align-items: center;
+		background-color: #1D1D28;
+	}
+
+	.author {
+		width: 750rpx;
+		height: 80rpx;
+		line-height: 80rpx;
+		background-color: #20202C;
+		//background-color: #FFFFFF;
+		margin: 10rpx 0 20rpx;
+		padding: 0 20rpx;
+		flex-direction: row;
+		align-items: center;
+	}
+
+	.author-home {
+		background-image: linear-gradient(to right, #FF8F00, rgba(254, 67, 101, 0.8));
+		color: #FFFFFF;
+		font-size: 26rpx;
+		padding: 0 20rpx;
+		height: 50rpx;
+		line-height: 50rpx;
+		border-radius: 10rpx;
+	}
+
+	.author-username {
+		flex: 1;
+		height: 80upx;
+		line-height: 80upx;
+		margin-left: 20upx;
+		font-size: 30upx;
+		color: #FFFFFF;
+	}
+
+	.author-tx {
+		border-radius: 50%;
+		height: 50upx;
+		width: 50upx;
+	}
+
+	.watch-free {
+		width: 713rpx;
+		height: 100rpx;
+		line-height: 100rpx;
+		border-radius: 10rpx;
+		color: #FFFFFF;
+		font-size: 30rpx;
+		padding-left: 20rpx;
+		text-align: center;
+	}
+
+	.comment-send {
+		height: 60rpx;
+		line-height: 60rpx;
+		width: 130rpx;
+		color: #FFFFFF;
+		border-radius: 60rpx;
+		text-align: center;
+		font-size: 27rpx;
+		background-image: linear-gradient(to right, #FF8F00, rgba(254, 67, 101, 0.8));
+	}
+
+	// 倍数
+	.rate-list {
+		position: absolute;
+		border-radius: 3rpx;
+		background-color: rgba(0, 0, 0, 0.5);
+		top: 58wx;
+		/* right: 130rpx; */
+		z-index: 12;
+		flex-direction: column;
+		padding: 10rpx 0;
+	}
+
+	.rate-list-text {
+		color: #FFFFFF;
+		font-size: 30rpx;
+		padding: 10rpx 20rpx;
+	}
+
+	.rate-list-text-sel {
+		color: #FF8F00 !important;
+	}
+
+	.video-rate {
+		position: absolute;
+		height: 26px;
+		line-height: 26px;
+		width: 100rpx;
+		text-align: center;
+		border-radius: 3rpx;
+		background-color: rgba(0, 0, 0, 0.5);
+		top: 10wx;
+		right: 30rpx;
+		font-size: 28rpx;
+		color: #FFFFFF;
+		z-index: 12;
+		font-weight: bold;
+	}
+
+	// 缓冲样式
+	.video-waiting {
+		position: absolute;
+		height: 30px;
+		line-height: 30px;
+		text-align: left;
+		border-radius: 5px;
+		top: 110wx;
+		left: 343rpx;
+		font-size: 11px;
+		color: rgba(255, 255, 255, 0.6);
+		z-index: 12;
+	}
+
+	.lock {
+		position: absolute;
+		top: 125wx;
+		left: 60rpx;
+		width: 40px;
+		height: 40px;
+		//margin-top: -20wx;
+		z-index: 13;
+	}
+
+	.projection-TV {
+		position: absolute;
+		width: 45rpx;
+		height: 40rpx;
+		left: 36rpx;
+		top: 90wx;
+	}
+
+	.server-sel,
+	.server-info-sel {
+		color: #B01A1C;
+	}
+
+	.server-info-sel {
+		border-width: 1px;
+		border-color: #B01A1C;
+	}
+
+	.server-lines {
+		width: 710rpx;
+		border-width: 1px;
+		border-color: #ff962f;
+		padding: 10px;
+		border-radius: 3px;
+	}
+
+	.server-info {
+		font-size: 14px;
+		border-width: 1px;
+		border-color: #666666;
+		border-radius: 3px;
+		padding: 5px 10px 5px 10px;
+		margin-right: 5px;
+		color: #666666;
+	}
+
+	.server-title {
+		font-size: 14px;
+		padding: 10px;
+		color: #666666;
+	}
+
+	.simi-info {
+		width: 230rpx;
+		margin-right: 10rpx;
+		margin-bottom: 10px;
+	}
+
+	.simi-img {
+		border-radius: 5px;
+		height: 150rpx;
+		width: 230rpx;
+	}
+
+	.simi-title {
+		font-size: 13px;
+		color: #FFFFFF;
+		padding: 3px;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		lines: 1;
+	}
+
+	.teleplay-scroll {
+		width: 750rpx;
+		padding-right: 25rpx;
+		flex-direction: row;
+		//background-color: #007AFF;
+	}
+
+	.production-scroll {
+		width: 750rpx;
+		padding-right: 25rpx;
+		flex-direction: row;
+		//background-color: #007AFF;
+	}
+
+	.production-info {
+		width: 180rpx;
+		height: 190rpx;
+		margin-bottom: 25upx;
+	}
+
+	.production-item {
+		width: 180rpx;
+		height: 190rpx;
+		padding: 0 15upx;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		position: relative;
+	}
+
+	.production-img {
+		border-radius: 70px;
+		height: 140upx;
+		width: 140upx;
+		border: #999 2px solid;
+		margin-bottom: 10upx;
+	}
+
+	.production-title {
+		font-size: 13px;
+		color: #fff;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		width: 150rpx;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+	}
+
+	.production-focus {
+		width: 40upx;
+		height: 40upx;
+		position: absolute;
+		top: 100upx;
+		right: 20upx;
+		z-index: 1;
+	}
+
+	.teleplay-number {
+		width: 93rpx;
+		height: 86rpx;
+		line-height: 86rpx;
+		color: #666666;
+		background-color: #E5E5E5;
+		text-align: center;
+		border-radius: 5px;
+		margin-right: 5px;
+		margin-bottom: 5px;
+		font-size: 15px;
+	}
+
+	.teleplay-yg {
+		position: absolute;
+		right: 5px;
+		top: 0;
+		font-size: 8px;
+		color: #FFFFFF;
+		background-color: #D89720;
+		z-index: 1;
+		padding: 2px 5px 2px 5px;
+		border-top-right-radius: 5px;
+		border-bottom-left-radius: 2px;
+	}
+
+	.play-lading {
+		color: #FFFFFF;
+		background-color: rgba(255, 12, 208, 0.8);
+	}
+
+	.ad-list {
+		width: 750rpx;
+		text-align: center;
+		padding-bottom: 2px;
+		padding-left: 20rpx;
+		background-color: #1D1D28;
+	}
+
+	.ad-img {
+		width: 713rpx;
+		height: 100rpx;
+		border-radius: 5px;
+		margin-top: 10rpx;
+	}
+
+	.videoLoadBgLenght {
+		background-color: #777777;
+		//width: 365rpx;
+		height: 2px;
+		margin-bottom: -8.3px;
+		border-radius: 2px;
+	}
+
+	.videoLoadLenght {
+		//width: 365rpx;
+		position: fixed;
+		top: 220wx;
+		margin-left: 190rpx;
+		padding-top: 6.8px;
+		padding-bottom: 6.5px;
+	}
+
+	.videoLoadIng {
+		height: 14px;
+		//width: 365rpx;
+	}
+
+	.loadIngX {
+		width: 0px;
+		height: 2px;
+		border-radius: 2px;
+		background-color: #FFFFFF;
+		margin-top: -8px;
+	}
+
+	.marginLeft {
+		background-color: #FFFFFF;
+		width: 14px;
+		height: 14px;
+		border-radius: 14px;
+	}
+
+	.head-placeholder {
+		height: 50wx;
+		padding-top: 10rpx;
+		background-color: #000;
+	}
+
+	.introduction-box {
+		width: 750rpx;
+		background-color: #FFFFFF;
+		//padding-top: 15rpx;
+	}
+
+	.introduction-head {
+		flex-direction: row;
+		position: relative;
+		padding: 30rpx;
+		background-color: #F5F5F5;
+		border-bottom-width: 1;
+		border-bottom-color: #E5E5E5;
+	}
+
+	.introduction-title {
+		color: #333333;
+		font-size: 30rpx;
+		width: 650rpx;
+		//background-color: #007AFF;
+	}
+
+	.introduction-close {
+		width: 48rpx;
+		height: 48rpx;
+		position: absolute;
+		right: 15rpx;
+		bottom: 28rpx;
+		//transform: rotate(90deg);
+		//transform-origin: 24rpx 24rpx;
+	}
+
+	.introduction-name,
+	.introduction-content {
+		font-size: 14px;
+		color: #777;
+		line-height: 22px;
+		width: 110rpx;
+		font-weight: bold;
+	}
+
+	.introduction-content {
+		//font-weight: 100;
+		width: 600rpx;
+	}
+
+	.introduction-text {
+		font-size: 30rpx;
+		padding-top: 20rpx;
+		lines: 0;
+		color: #666666;
+		width: 750rpx;
+		text-align: center;
+	}
+
+	//公用样式
+	.flex-row {
+		flex-direction: row;
+	}
+
+	.flex-row-reverse {
+		flex-direction: row-reverse;
+	}
+
+	.relative {
+		position: relative;
+	}
+
+	.flex-row-rtl {
+		flex-direction: row;
+	}
+
+	.title {
+		width: 350rpx;
+		font-size: 33rpx;
+		padding: 0 20rpx;
+		font-weight: bold;
+		border-left: 6px solid #FF8F00;
+		margin-bottom: 30rpx;
+		color: #FFFFFF;
+	}
+
+	.title-icon {
+		width: 43rpx;
+		height: 43rpx;
+		margin: 20rpx 0rpx 20rpx 10rpx;
+	}
+
+	//公用样式结束
+	.top-box {
+		position: fixed;
+		top: 0;
+		background-color: #000000;
+	}
+
+	//视频样式
+	.video {
+		width: 750rpx;
+		height: 250wx;
+		background-color: #000000;
+		position: relative;
+		z-index: 9;
+	}
+
+	.back {
+		position: absolute;
+		left: 18wx;
+		top: 5wx;
+	}
+
+	.before-video-ad {
+		width: 750rpx;
+		height: 220wx;
+	}
+
+	.before-ad {
+		width: 750rpx;
+		height: 250wx;
+	}
+
+	.pause-ad {
+		position: absolute;
+	}
+
+	.title-video {
+		position: absolute;
+		top: 17rpx;
+		left: 150rpx;
+		color: #fff;
+	}
+
+	.ad-time {
+		position: absolute;
+		right: 10wx;
+		color: #FFFFFF;
+		//background-color: #333333;
+		background-color: rgba(0, 0, 0, 0.8);
+		border-radius: 5wx;
+		font-size: 10px;
+		top: 10wx;
+		padding: 10wx;
+		text-align: center;
+		z-index: 999;
+	}
+
+	.controls-play {
+		left: 50wx;
+	}
+
+	.controls-pause {
+		right: 50wx;
+	}
+
+	.controls-title {
+		width: 100%;
+		text-align: center;
+		color: #FFFFFF;
+	}
+
+	//视频样式结束
+
+	//多线路 开始
+	.video-line-box {
+		width: 750rpx;
+		height: 60wx;
+		flex-direction: row;
+		justify-content: center;
+		align-items: center;
+		font-size: 18px;
+		background-color: #1D1D28;
+		box-shadow: 0px 4px 6px 0px rgba(103, 103, 103, 0.2);
+	}
+
+	.video-line-exchange-icon {
+		justify-content: center;
+		align-items: center;
+		width: 68rpx;
+		height: 68rpx;
+	}
+
+	.video-line {
+		flex: 1;
+		justify-content: center;
+		align-items: center;
+		font-size: 18px;
+	}
+
+	//多线路 结束
+	.video-content {
+		background-color: #1D1D28;
+	}
+
+	.video-info-box {
+		width: 750rpx;
+		padding: 15rpx 20rpx;
+		/* border-bottom-width: 1;
+		border-bottom-color: #E5E5E5; */
+		background-color: #1D1D28;
+	}
+
+	.video-title {
+		font-size: 16px;
+		margin-bottom: 5px;
+		color: rgba(255, 255, 255, 0.8);
+	}
+
+	.video-click-num {
+		font-size: 14px;
+		color: #cccccc;
+	}
+
+	.video-gold {
+		//padding-right: 10px;
+	}
+
+	.video-gold-image {
+		width: 16px;
+		height: 16px;
+	}
+
+	.video-gold-num {
+		height: 18px;
+		font-size: 14px;
+		color: #cccccc;
+	}
+
+	.show-introduction {
+		position: absolute;
+		right: 0;
+		height: 30px;
+		top: 6px;
+		align-items: center;
+	}
+
+	.show-introduction-text {
+		font-size: 14px;
+		color: #999999;
+	}
+
+	.video-operation {
+		margin-top: 5px;
+	}
+
+	.video-operation-image {
+		width: 20px;
+		height: 18px;
+	}
+
+	.margin-left-110rpx {
+		margin-right: 110rpx;
+	}
+
+	.video-operation-text {
+		font-size: 12px;
+	}
+
+	// 猜你喜欢样式开始
+	.guess-video-list {
+		flex-wrap: wrap;
+		width: 750rpx;
+		justify-content: space-between;
+		/* border-bottom-width:1;
+		border-bottom-color:#E2E2E2; */
+		padding-bottom: 0;
+	}
+
+	.space-between {
+		justify-content: space-between;
+	}
+
+	.flex-start {
+		justify-content: flex-start;
+	}
+
+	.guess-video-info {
+		width: 340rpx;
+		background-color: #1D1D28;
+		margin: 0 20rpx 25rpx 0;
+		border-radius: 8px;
+		font-size: 28rpx;
+		border-width: 1;
+		border-color: #333;
+		position: relative;
+		padding-bottom: 10rpx;
+	}
+
+	.guess-video-img {
+		width: 341rpx;
+		height: 200rpx;
+		border-top-left-radius: 8px;
+		border-top-right-radius: 8px;
+	}
+
+	.guess-video-playTime {
+		font-size: 10px;
+		background-color: rgba(0, 0, 0, 0.4);
+		color: #FFFFFF;
+		padding: 0 10rpx;
+		height: 34rpx;
+		line-height: 34rpx;
+		border-radius: 5rpx;
+		position: absolute;
+		left: 13rpx;
+		top: 160rpx;
+		z-index: 9;
+	}
+
+	.guess-video-title {
+		width: 345rpx;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		margin: 10rpx;
+		lines: 1;
+		font-size: 25rpx;
+		color: #FFFFFF;
+		//text-align: center;
+	}
+
+	.guess-video-gold {
+		width: 120rpx;
+		padding: 0 10rpx;
+		height: 30rpx;
+		line-height: 30rpx;
+		margin-bottom: 5rpx;
+		color: rgba(255, 12, 208, 0.8);
+	}
+
+	.guess-video-gold-img {
+		width: 32rpx;
+		height: 20rpx;
+		margin-right: 5rpx;
+		margin-top: 6rpx;
+	}
+
+	.guess-video-gold-num {
+		font-size: 24rpx;
+		color: #999999;
+		//color: #f0973f;
+	}
+
+	.guess-video-date {
+		margin-right: 15rpx;
+		font-size: 24rpx;
+		color: #999999;
+	}
+
+	// 猜你喜欢样式结束
+
+	// 评论
+	.uni-comment-list-box {
+		width: 750rpx;
+		font-size: 28rpx;
+		background-color: #1D1D28;
+		padding: 0 20rpx 50wx 20rpx;
+	}
+
+	.uni-comment {
+		width: 720rpx;
+	}
+
+	.uni-comment-list {
+		flex-wrap: nowrap;
+		padding-bottom: 20rpx;
+		width: 720rpx;
+		//border-top-width:1;
+		//border-top-color:#E2E2E2;
+	}
+
+	.uni-comment-face {
+		width: 70rpx;
+		height: 70rpx;
+		border-radius: 70rpx;
+		margin-right: 20rpx;
+		overflow: hidden;
+	}
+
+	.uni-comment-face-img {
+		height: 70rpx;
+		width: 70rpx;
+		border-radius: 70rpx;
+		border-color: #E2E2E2;
+		border-width: 1;
+	}
+
+	.uni-comment-body {
+		width: 580rpx;
+	}
+
+	.uni-comment-top {
+		line-height: 1.5em;
+		justify-content: space-between;
+	}
+
+	.uni-comment-username {
+		color: #0A98D5;
+		font-size: 28rpx;
+	}
+
+	.uni-comment-date {
+		line-height: 38rpx;
+		flex-direction: row;
+		justify-content: space-between;
+	}
+
+	.uni-comment-addtime {
+		color: #999999;
+		font-size: 24rpx;
+		line-height: 38rpx;
+	}
+
+	.uni-comment-content {
+		line-height: 42rpx;
+		font-size: 28rpx;
+		padding: 8rpx 0 20rpx;
+		border-bottom-width: 1;
+		border-bottom-color: rgba(255, 255, 255, 0.03);
+		color: #FFFFFF;
+		margin-bottom: 10rpx;
+	}
+
+	.uni-not-comment {
+		padding: 100rpx 0 150rpx 0;
+		width: 720rpx;
+		justify-content: center;
+		align-items: center;
+		//border-top-width: 1;
+		//border-top-color: #F8F8F8;
+	}
+
+	.not-comment-img {
+		margin: 20rpx;
+		width: 210rpx;
+		height: 130rpx;
+	}
+
+	.not-comment-text {
+		font-size: 28rpx;
+		color: #FFFFFF;
+		margin-top: 10rpx;
+	}
+
+	// 评论 结束
+	//添加评论
+	.add-comment-box {
+		width: 750rpx;
+		height: 48wx;
+		border-top-width: 1;
+		border-color: #333333;
+		background-color: #20202C;
+		padding: 10wx;
+		position: fixed;
+		bottom: 0;
+		align-items: center;
+	}
+
+	.f-add-comment-box {
+		width: 750rpx;
+		height: 48wx;
+		border-top-width: 1;
+		border-color: #333333;
+		background-color: #20202C;
+		padding: 10wx;
+		align-items: center;
+	}
+
+	.comment-img {
+		width: 34wx;
+		height: 34wx;
+	}
+
+	.comment-input {
+		margin: 0 10rpx;
+		font-size: 25rpx;
+		height: 33wx;
+		flex: 1;
+		padding: 0 30rpx;
+		overflow: hidden;
+		border-width: 1;
+		border-color: #333333;
+		border-style: solid;
+		border-radius: 50rpx;
+		color: #999999;
+	}
+
+	.comment-submit {
+		width: 22wx;
+		height: 22wx;
+	}
+
+	.content-head {
+		position: fixed;
+		width: 30px;
+		height: 30px;
+		line-height: 30px;
+		border-radius: 50%;
+		background-color: rgba(255, 255, 255, 0.3);
+		top: 30wx;
+		left: 15px;
+		text-align: center;
+		font-size: 15px;
+		color: #cccccc;
+		z-index: 10;
+		font-weight: bold;
+	}
+
+	.backimage {
+		margin-top: 5px;
+		margin-left: 5px;
+		width: 18px;
+		height: 18px;
+	}
+
+	.current-line {
+		color: #fff;
+		border-width: 1;
+		border-color: #e241d5;
+		border-radius: 20rpx;
+		padding: 6rpx 68rpx;
+		line-height: 30px;
+		background-color: #e241d5;
+	}
+
+	.no-current-line {
+		color: #808080;
+		border-width: 1;
+		border-color: #808080;
+		border-radius: 20rpx;
+		padding: 6rpx 68rpx;
+		line-height: 30px;
+	}
+
+	.box {
+		color: #fff;
+		width: 100px;
+		height: 100px;
+		line-height: 100px;
+		text-align: center;
+		background-color: #4CD964;
+	}
+
+	.error-tips {
+		position: fixed;
+		width: 750rpx;
+		left: 0;
+		top: 0;
+		padding-top: 140wx;
+		justify-content: center;
+		align-items: center;
+		z-index: 999;
+	}
+
+	.video-tips-box {
+		position: fixed;
+		width: 750rpx;
+		left: 0;
+		top: 120wx;
+		justify-content: center;
+		align-items: center;
+		z-index: 999;
+		//background-color: #007AFF;
+	}
+
+	.video-gold-tips-box {
+		top: 90wx;
+	}
+
+	.video-gold-tips-box-mask {
+		width: 750rpx;
+		height: 250wx;
+		background-color: #000;
+	}
+
+	.tips-bt-box {
+		width: 580rpx;
+		flex-direction: row;
+		align-items: center;
+		justify-content: space-between;
+	}
+
+	.tips-bt {
+		margin-top: 32px;
+		padding: 0 70rpx;
+		height: 38px;
+		border-radius: 50px;
+		background-image: linear-gradient(to right, #FF8F00, rgba(254, 67, 101, 0.8));
+		color: #FFFFFF;
+		font-size: 14px;
+		line-height: 38px;
+		text-align: center;
+		text-overflow: ellipsis;
+		justify-content: space-between;
+	}
+
+	.show-toast {
+		background-color: rgba(0, 0, 0, .75);
+		position: fixed;
+		display: flex;
+		justify-content: center;
+		align-items: center;
+	}
+
+	.show-toast-box {
+		background-color: rgba(0, 0, 0, .75);
+		padding: 10px;
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		flex-direction: column;
+		border-radius: 10px;
+	}
+
+	.show-toast-box-text {
+		color: white;
+		text-align: center;
+	}
+
+	.action-buttons {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		padding: 0 10upx;
+		margin-right: 10upx;
+		padding-top: 10upx;
+	}
+</style>

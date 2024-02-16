@@ -1,0 +1,1276 @@
+<template>
+	<view class="live-center" @click="setChatOpacity">
+		<view class="live-gift-list">
+			<view class="live-gift-show" v-for="(g, i) in giveGift" :key="i" v-if="isGiftShow > 0">
+				<image class="is-vip" src="@/static/imgs/vips.png" mode="aspectFit" v-if="g.isVip"></image>
+				<text style="color:rgba(245,160,1,0.8);font-size:30rpx;">{{g.username}} </text>
+				<text style="color:#FFFFFF;font-size:30rpx;">赠送主播 {{g.giftName}}</text>
+				<image style="width:50rpx;height:50rpx;margin:0 10rpx;" :src="g.giftImg" mode="aspectFill"></image>
+				<text style="color:#FFFFFF;font-size:30rpx;"> x {{g.num}}</text>
+			</view>
+		</view>
+		<view style="height:60rpx;">
+			<view class="live-user-go" v-if="inUser.time > 0">
+				<image class="is-vip" src="@/static/imgs/vips.png" mode="aspectFit" v-if="inUser.isVip"></image>
+				<image class="is-vip" :src="inUser.headImg" mode="aspectFill" style="border-radius:50rpx;"></image>
+				<text style="color:#FFFFFF;font-size:28rpx;">{{inUser.username}}，闪亮登场...</text>
+			</view>
+		</view>
+		<!-- :scroll-top="scrollTop" -->
+		<scroll-view :style="{'opacity':opacity}" :scroll-y="true" :show-scrollbar="false" class="live-center-list"
+			:scroll-top="scrollTop" v-if="isAndroid">
+			<view class="live-view-item" v-for="(m, i) in msgList" :key="i">
+				<image class="live-user-img" :src="m.user.headImg" mode="aspectFill"></image>
+				<richTextReply :son-list="m.list"></richTextReply>
+			</view>
+		</scroll-view>
+		<scroll-view :style="{'opacity':opacity}" :scroll-y="true" :show-scrollbar="false" :scroll-into-view="intoViwe"
+			class="live-center-list" v-else>
+			<view class="live-view-item" :id="'msg_'+i" v-for="(m, i) in msgList" :key="i">
+				<image class="live-user-img" :src="m.user.headImg" mode="aspectFill" style="margin-top:1px;"></image>
+				<text class="live-user-right font-ios">{{m.list}}</text>
+			</view>
+		</scroll-view>
+		<view class="live-bottom" v-if="isAnchor>0">
+			<view class="live-gift" @click="settingVideo">
+				<image class="live-gift-img" src="@/static/live/settings.png" mode="aspectFill"></image>
+			</view>
+			<view class="live-start-player" v-if="startPlayer==0" @click="liveStatus('_self.start()', 1)">
+				<text class="live-startPlayer-btn">开始直播</text>
+			</view>
+			<view class="live-start-player pause-live" v-if="startPlayer==1" @click="liveStatus('_self.pause()', 2)">
+				<text class="live-startPlayer-btn">暂停直播</text>
+			</view>
+			<view class="live-start-player resume-live" v-if="startPlayer==2" @click="liveStatus('_self.resume()', 1)">
+				<text class="live-startPlayer-btn">继续直播</text>
+			</view>
+			<!-- <view class="live-start-player stop-live" v-if="startPlayer==3" @click="liveStatus('_self.stop()', 0)">
+				<text class="live-startPlayer-btn">停止直播</text>
+			</view> -->
+			<view class="live-gift" @click="closePlayer">
+				<image class="live-gift-img" src="@/static/live/close2.png" mode="aspectFill"></image>
+			</view>
+		</view>
+		<view class="live-bottom" v-else>
+			<input type="text" :value="content" :placeholder="sendText" placeholder-style="color:#ccc"
+				class="live-send-msg" @input="msgContent" />
+			<view class="live-gift" @click="sendMsg">
+				<!-- <text class="send-text">发送</text> -->
+				<image class="live-gift-img" src="@/static/live/send.png" mode="aspectFill"></image>
+			</view>
+			<view class="live-gift" @click="showGift">
+				<image class="live-gift-img" src="@/static/live/gift.png" mode="aspectFill"></image>
+			</view>
+			<view class="live-gift" @click="closePlayer">
+				<image class="live-gift-img" src="@/static/live/close2.png" mode="aspectFill"></image>
+			</view>
+		</view>
+
+		<uni-popup ref="showintroduction" type="bottom" :mask-click="true" :backColor="'rgba(0,0,0,0.01)'">
+			<view class="gift-list-bg">
+				<view class="gift-top-title">
+					<text class="gift-top-title-left">账户金币：{{user.gold}}</text>
+					<text class="gift-top-title-right" @click="recUser">充值</text>
+				</view>
+				<swiper class="gift-list" circular indicator-dots indicator-color="rgba(255,255,255,0.4)"
+					indicator-active-color="rgba(255,12,208,0.8)">
+					<swiper-item v-for="(a, ai) in giftList" :key="ai">
+						<uni-grid :column="4" :show-border="false" :square="true" :highlight="false"
+							@change="changeGift">
+							<uni-grid-item v-for="(b, bi) in a" :key="bi" :index="b">
+								<view class="gift-list-item">
+									<image class="gift-item-img" :src="b.img" mode="aspectFill"></image>
+									<text class="text">{{b.name}}</text>
+									<text class="text">{{b.gold}}</text>
+								</view>
+							</uni-grid-item>
+						</uni-grid>
+					</swiper-item>
+				</swiper>
+			</view>
+		</uni-popup>
+
+		<uni-popup ref="settingVideo" type="bottom" :mask-click="true" :backColor="'rgba(0,0,0,0.01)'">
+			<view class="setting-bg">
+				<view class="setting-item" @click="setCamera('devicePosition')">
+					<image class="setting-item-ico" src="@/static/live/_camera.png" mode="aspectFill"></image>
+					<text class="setting-item-text">切换摄像头</text>
+					<text class="setting-item-text setting-point">{{settingPoint.devicePosition}}</text>
+				</view>
+				<view class="setting-item" @click="setCamera('beauty')">
+					<image class="setting-item-ico" src="@/static/live/_mb.png" mode="aspectFill"></image>
+					<text class="setting-item-text">美颜级别</text>
+					<text class="setting-item-text setting-point">{{settingPoint.beauty}}</text>
+				</view>
+				<view class="setting-item" @click="setCamera('whiteness')">
+					<image class="setting-item-ico" src="@/static/live/_my.png" mode="aspectFill"></image>
+					<text class="setting-item-text">美白级别</text>
+					<text class="setting-item-text setting-point">{{settingPoint.whiteness}}</text>
+				</view>
+				<view class="setting-item" @click="setCamera('mode')">
+					<image class="setting-item-ico" src="@/static/live/_video.png" mode="aspectFill"></image>
+					<text class="setting-item-text">视频模式</text>
+					<text class="setting-item-text setting-point">{{settingPoint.mode}}</text>
+				</view>
+			</view>
+		</uni-popup>
+
+		<uni-popup ref="userList" type="center" :mask-click="true" :backColor="'rgba(0,0,0,0.01)'">
+			<view class="user-list-bg">
+				<text class="user-list-title">在线用户管理({{userOnlneList.length}})</text>
+				<scroll-view scroll-y="true" class="user-list-all" :show-scrollbar="false">
+					<view class="user-list-item" v-for="(u, i) in userOnlneList" :key="i">
+						<image class="user-item-head" :src="u.headImg" mode="aspectFill"></image>
+						<text class="user-item-edit user-item-vip" v-if="u.isVip">VIP</text>
+						<text class="user-item-edit user-item-common" v-else>VIP</text>
+						<text class="user-item-username">{{u.username}}</text>
+						<text class="user-item-edit is-disable" @click="enableSendMsg(i)" v-if="u.isDisable">恢复</text>
+						<text class="user-item-edit" @click="disableSendMsg(i)" v-else>禁言</text>
+						<text class="user-item-edit" @click="kickedOut(i)">踢出</text>
+					</view>
+					<view style="align-items:center;" v-if="userOnlneList.length==0">
+						<text style="font-size:30rpx;margin-top:100rpx;color:#666666;">暂无用户</text>
+					</view>
+				</scroll-view>
+			</view>
+		</uni-popup>
+
+		<uni-popup ref="userTopGift" type="top" :mask-click="true" :backColor="'rgba(0,0,0,0.01)'">
+			<view class="user-top-gift">
+				<view class="user-top-content">
+					<image class="user-top-userimg" :src="userToGift.headimgurl" mode="aspectFill"></image>
+					<text class="user-top-text">[{{userToGift.username}}] 赠送 {{userToGift.giftName}}</text>
+					<image class="user-top-giftimg" :src="userToGift.giftImg" mode="aspectFit"></image>
+					<text class="user-top-text">x 1</text>
+				</view>
+			</view>
+		</uni-popup>
+		<css-loading ref="cssLoading"></css-loading>
+	</view>
+</template>
+
+<script>
+	import api from "@/common/api.js";
+	import richTextReply from '@/components/d-richTextReply.nvue'
+	import uniGrid from "@/components/uni-grid/uni-grid.vue"
+	import uniGridItem from "@/components/uni-grid-item/uni-grid-item.vue"
+	import cssLoading from "@/components/css-loading/loading.vue"
+	var _self;
+	export default {
+		components: {
+			richTextReply,
+			uniGrid,
+			uniGridItem,
+			cssLoading
+		},
+		data() {
+			return {
+				sendBottom: 0,
+				msgList: [],
+				//聊天内容
+				content: '',
+				sendText: '撩一撩？',
+				//用户信息
+				user: {
+					id: 0,
+					isVip: false,
+					username: 'loading...',
+					gold: 0,
+					isDisable: false,
+					headImg: ''
+				},
+				scrollTop: 9999,
+				//进来用户提示
+				inUser: {
+					time: 0,
+					isVip: false,
+					username: "",
+					headImg: ""
+				},
+				giftList: [], //礼物列表
+				giveGift: [], //赠送礼物列表
+				isGiftShow: 0, //是否显示礼物特效
+
+				opacityTime: 10,
+				opacity: 1, //聊天框透明度
+				opacityDjs: 1000,
+
+				isAnchor: 0, //主播端 UID
+				anchorId: 0, //用户端主播ID
+				startPlayer: 0, //直播状态 0开始直播1暂止直播2继续直播
+
+				setting: {
+					mode: 'SD', //推流视频模式，可取值：SD（标清）, HD（高清）, FHD（超清)
+					devicePosition: 'front', //前置或后置，值为front, back
+					whiteness: 0, //美白 0~9 IOS范围 为 1 
+					beauty: 0, //美颜 0~9 IOS范围 为 1
+				},
+				settingPoint: {
+					mode: '标清',
+					devicePosition: '前置',
+					whiteness: '关闭',
+					beauty: '关闭'
+				},
+				userOnlneList: [],
+				urlType: false,
+
+				backUrl: {
+					url: '/pages/live/list',
+					type: 'newx'
+				},
+				isLogin: {},
+
+				isAndroid: true,
+
+				intoViwe: 'msg_0',
+
+				userToGift: {}, //礼物特效
+			}
+		},
+		onLoad(e) {
+			_self = this;
+			var phone = uni.getSystemInfoSync();
+			_self.isAndroid = phone.platform == 'android' ? true : false;
+			_self.isLogin = api.getLogins();
+			_self.initChat();
+			if (e.url != undefined) _self.backUrl = JSON.parse(e.url);
+		},
+		onUnload() {
+			//console.log('onUnload_chat');
+			if (_self.isAnchor == 0) _self.userOut();
+			uni.$off('getSubnvueParam');
+		},
+		methods: {
+			_showLoading(text = null){
+				this.$nextTick(()=>{
+					this.$refs.cssLoading.open(text)
+				})
+			},
+			_hideLoading(){
+				this.$nextTick(()=>{
+					this.$refs.cssLoading.close()
+				})
+			},
+			initChat() {
+				_self.sendText = _self.user.isDisable ? '您已被主播禁言' : '撩一撩？';
+				_self.showGiftDjs();
+				_self.hideChatList();
+				uni.$on('getSubnvueParam', (data) => {
+					//console.log(data)
+					if (data.type == 'backFun') {
+						eval(data.data);
+					}
+					if (data.type == 'anchor') {
+						_self.isAnchor = data.data;
+					}
+					if (data.type == 'anchorId') {
+						_self.anchorId = data.data;
+					}
+					if (data.type == 'backList') {
+						_self.closePlayer(data.data);
+					}
+					if (data.type == 'inUser') {
+						//console.log(data.data)
+						_self.inUser = data.data;
+						_self.showInUser();
+						//_self.getUserOnlneList(_self.inUser);
+					}
+					if (data.type == 'outUser') {
+						//console.log('outUser', data.data);
+						_self.userOnlneList = data.data;
+						//_self.userOutLoading(data.data.id);
+					}
+					if (data.type == 'updateSendMsg') {
+						var d = data.data.data;
+						//console.log(d);
+						if (d.type == 1) {
+							var text = '您已被主播禁言';
+							_self.user.isDisable = true;
+							_self.sendText = text;
+						} else {
+							var text = '主播已解除禁言';
+							_self.user.isDisable = false;
+							_self.sendText = '撩一撩？';
+						}
+						api.showToast(text, 3000);
+					}
+					if (data.type == 'kickedOut') {
+						var d = data.data;
+						uni.showToast({
+							title: '您已被踢出房间',
+							duration: 1500,
+							mask: true,
+							image: '/static/stop.png'
+						});
+						setTimeout(() => {
+							_self.outRoom();
+						}, 1500);
+					}
+					if (data.type == 'startPlayer') {
+						_self.startPlayer = data.data;
+					}
+					if (data.type == 'onlineList') {
+						//console.log('online',data.data.data);
+						_self.userOnlneList = data.data.data;
+					}
+				});
+			},
+			// 禁言
+			disableSendMsg(i) {
+				uni.showModal({
+					content: "是否禁止用户" + _self.userOnlneList[i].username + "发言",
+					success: (row) => {
+						if (row.confirm) {
+							_self.userOnlneList[i].isDisable = true;
+							_self.updateSendMsg(i);
+						}
+					}
+				});
+			},
+			// 恢复禁言
+			enableSendMsg(i) {
+				_self.userOnlneList[i].isDisable = false;
+				_self.updateSendMsg(i);
+			},
+			updateSendMsg(i) {
+				_self._showLoading('处理中...');
+				var type = _self.userOnlneList[i].isDisable ? 1 : 2;
+				uni.request({
+					url: api.apiData.updateSendMs,
+					method: 'POST',
+					data: {
+						uid: _self.userOnlneList[i].id,
+						aid: _self.isAnchor,
+						type: type
+					},
+					header: {
+						'Content-type': 'application/x-www-form-urlencoded'
+					},
+					success: (e) => {
+						var r = e.data;
+						api.showToast(r.Msg, 1500);
+						if (r.Code == 200) {
+							var arr = {
+								uid: _self.userOnlneList[i].id,
+								type: type
+							};
+							//直播间通知
+							var data = {
+								type: 'updateSendMsg',
+								data: arr,
+								anchorId: _self.isAnchor
+							};
+							_self.sendSever(data);
+						}
+					},
+					fail: () => {
+						// 加载失败提示
+						api.showToast("操作失败，请检查网络是否正常", 3000);
+					},
+					complete: () => {
+						_self._hideLoading()
+					}
+				});
+			},
+			// 踢出房间	
+			kickedOut(i) {
+				uni.showModal({
+					content: "是否踢出用户" + _self.userOnlneList[i].username + "出房间，踢出后本次直播将无法进入",
+					success: (row) => {
+						if (row.confirm) {
+							_self._showLoading('处理中...');
+							uni.request({
+								url: api.apiData.anchorOutUser,
+								method: 'POST',
+								data: {
+									uid: _self.userOnlneList[i].id,
+									aid: _self.isAnchor
+								},
+								header: {
+									'Content-type': 'application/x-www-form-urlencoded'
+								},
+								success: (e) => {
+									var r = e.data;
+									api.showToast(r.Msg, 1500);
+									if (r.Code == 200) {
+										//直播间通知
+										var data = {
+											type: 'kickedOut',
+											uid: _self.userOnlneList[i].id,
+											anchorId: _self.isAnchor
+										};
+										_self.sendSever(data);
+									}
+								},
+								fail: () => {
+									// 加载失败提示
+									api.showToast("操作失败，请检查网络是否正常", 3000);
+								},
+								complete: () => {
+									_self._hideLoading()
+								}
+							});
+						}
+					}
+				});
+			},
+			userShowHide(t) {
+				if (t == 1) {
+					_self.outRoom()
+				} else {
+					_self.urlType = false;
+				}
+			},
+			recUser() {
+				_self._showLoading('正在跳转...');
+				_self.urlType = true;
+				_self.$nextTick(() => {
+					_self.$refs['showintroduction'].close();
+					var uri = {
+						url: '/pages/live/player?aid=' + _self.anchorId,
+						type: 'new'
+					};
+					setTimeout(() => {
+						_self._hideLoading()
+						_self.skipUrl('/pages/recharge/recharge?type=3&url=' + JSON.stringify(uri),
+							'newx');
+					}, 500)
+				});
+			},
+			getUserOnlneList(item) {
+				if (item.id != 0) _self.userOnlneList.push(item);
+				var data = {
+					type: 'onlineUsers',
+					data: _self.userOnlneList.length,
+					anchorId: _self.anchorId
+				};
+				_self.sendSever(data);
+			},
+			showUserList(e) {
+				//console.log(e)
+				_self.$nextTick(() => {
+					_self.$refs['userList'].open()
+				});
+			},
+			setCamera(t) {
+				switch (t) {
+					case 'devicePosition':
+						_self.setting.devicePosition = (_self.setting.devicePosition == 'front') ? 'back' :
+							'front';
+						_self.settingPoint.devicePosition = (_self.setting.devicePosition == 'front') ? '前置' :
+							'后置';
+						setTimeout(() => {
+							api.showToast('已切换至' + _self.settingPoint.devicePosition + '摄像头', 2000);
+						}, 500);
+						break;
+					case 'whiteness':
+						if (_self.setting.whiteness == 9) {
+							_self.setting.whiteness = 0;
+							_self.settingPoint.whiteness = "关闭";
+						} else {
+							_self.setting.whiteness = 9;
+							_self.settingPoint.whiteness = "开启";
+							//_self.setting.whiteness ++;
+							//_self.settingPoint.whiteness = _self.setting.whiteness+"级";
+						}
+						break;
+					case 'beauty':
+						if (_self.setting.beauty == 9) {
+							_self.setting.beauty = 0;
+							_self.settingPoint.beauty = "关闭";
+						} else {
+							_self.setting.beauty = 9;
+							_self.settingPoint.beauty = "开启";
+							//_self.setting.beauty ++;
+							//_self.settingPoint.beauty = _self.setting.beauty+"级";
+						}
+						break;
+					default:
+						if (_self.setting.mode == 'SD') {
+							_self.setting.mode = 'HD';
+							_self.settingPoint.mode = "高清";
+						} else if (_self.setting.mode == 'HD') {
+							_self.setting.mode = 'FHD';
+							_self.settingPoint.mode = "超清";
+						} else {
+							_self.setting.mode = 'SD';
+							_self.settingPoint.mode = "标清";
+						}
+						break;
+				}
+				if (t == 'devicePosition') {
+					_self.sendParam(1, '_self.switchCamera()');
+				} else {
+					_self.sendParam(2, _self.setting);
+				}
+			},
+			sendParam(t, fun) {
+				uni.$emit('getSubnvueParam', {
+					type: 'playerSetting',
+					data: {
+						type: t,
+						data: fun
+					}
+				});
+			},
+			settingVideo() {
+				_self.$nextTick(() => {
+					_self.$refs['settingVideo'].open()
+				});
+			},
+			liveStatus(e, t) {
+				uni.$emit('getSubnvueParam', {
+					type: 'livePlayerStatus',
+					data: e
+				});
+			},
+			hideChatList() {
+				setTimeout(() => {
+					if (_self.opacityTime > 0) {
+						_self.opacityTime--;
+					} else {
+						if (_self.opacity > 0.0) {
+							_self.opacityDjs = 100;
+							_self.opacity = _self.opacity - 0.1;
+						} else {
+							_self.opacityDjs = 5000;
+						}
+					}
+					_self.hideChatList();
+					//console.log(_self.opacityTime +'/'+ _self.opacity);
+				}, _self.opacityDjs);
+			},
+			addGift(i) {
+				var myGold = _self.user.gold;
+				if (myGold < i.gold) {
+					api.showToast('账户金币不足，请充值', 2000);
+					return
+				}
+				var item = {
+					id: _self.user.id,
+					isVip: i.isVip,
+					username: i.username,
+					giftImg: i.img,
+					num: 1,
+					giftName: i.name,
+					headimgurl: i.headimgurl,
+					gold: i.gold,
+					nickname: _self.isLogin.account
+				}
+				_self._showLoading('打赏中...');
+				uni.request({
+					url: api.apiData.giveAnchor,
+					method: 'POST',
+					data: {
+						uid: _self.user.id,
+						aid: _self.anchorId,
+						gid: i.id
+					},
+					header: {
+						'Content-type': 'application/x-www-form-urlencoded'
+					},
+					success: (e) => {
+						var r = e.data;
+						//console.log(r)
+						if (r.Code == 200) {
+							var d = r.Data;
+							_self.user.gold = parseInt(_self.user.gold - i.gold);
+							_self.giveGiftData(item);
+							var arr = {
+								item: item,
+								orderList: d.giveOrderList
+							};
+							//console.log(item)
+							//直播间通知
+							var data = {
+								type: 'giveGift',
+								data: arr,
+								'anchorId': _self.anchorId
+							};
+							_self.sendSever(data);
+						} else {
+							api.showToast(r.Msg, 3000);
+						}
+					},
+					fail: () => {
+						// 加载失败提示
+						api.showToast("赠送失败，请重试", 3000);
+					},
+					complete: () => {
+						_self._hideLoading()
+					}
+				});
+			},
+			giveGiftData(e) {
+				if (_self.giveGift.length >= 5) {
+					_self.giveGift = [];
+				}
+				_self.giveGift.push(e);
+				_self.isGiftShow = 8;
+				_self.userToGift = e;
+				_self.$nextTick(() => {
+					_self.$refs['userTopGift'].open()
+				});
+			},
+			userGiveGift(e) {
+				if (e.id != _self.user.id) {
+					_self.isGiftShow = 8;
+					_self.giveGift.push(e);
+				}
+			},
+			showGiftDjs() {
+				setTimeout(() => {
+					if (_self.isGiftShow > 0) {
+						_self.isGiftShow--;
+						if (_self.isGiftShow == 5) _self.$refs['userTopGift'].close();
+					} else {
+						_self.giveGift = [];
+					}
+					_self.showGiftDjs();
+				}, 1000);
+			},
+			changeGift(e) {
+				var item = e.detail.index;
+				item.isVip = _self.user.isVip;
+				item.username = _self.user.username;
+				item.headimgurl = _self.user.headImg;
+				_self.addGift(item);
+				//console.log(item)
+			},
+			getGiftList(e) {
+				//console.log(e)
+				_self.giftList = e.giftList;
+				_self.user = e.userInfo;
+				_self.addSysNotice(e.sysNotice)
+			},
+			showGift() {
+				_self.$nextTick(() => {
+					_self.$refs['showintroduction'].open()
+				});
+			},
+			showInUser() {
+				//console.log(_self.inUser)
+				if (0 != _self.inUser.id) {
+					if (_self.inUser.time > 0) {
+						_self.inUser.time--;
+					}
+					setTimeout(() => {
+						_self.showInUser();
+					}, 1000)
+				} else {
+					_self.inUser.time = 0;
+				}
+			},
+			addSysNotice(e) {
+				//console.log(e)
+				if (e.length > 0) {
+					var itemArr = [{
+						name: 'span',
+						text: '' + e,
+						styleObject: {
+							fontSize: "13px",
+							color: "#fff",
+						}
+					}, {
+						name: 'span',
+						text: '系统:&nbsp;',
+						styleObject: {
+							fontSize: "13px",
+							color: "rgba(245,209,1,1)",
+						}
+					}];
+					itemArr.reverse();
+					var arr = {
+						list: itemArr,
+						user: {
+							headImg: '/static/live/sys.png'
+						}
+					};
+					if (!_self.isAndroid) {
+						arr.list = '系统：' + e;
+					}
+					_self.msgList.push(arr);
+					_self.setChatOpacity();
+				}
+			},
+			sendMsg() {
+				if (_self.user.isDisable) {
+					api.showToast("发送失败，您已被主播禁言", 2000);
+					return;
+				}
+				if (_self.content.length == 0) {
+					api.showToast("请输入内容", 1500);
+					return;
+				}
+				var itemArr = [{
+					name: 'span',
+					text: '' + _self.content,
+					styleObject: {
+						fontSize: "13px",
+						color: "#fff"
+					}
+				}, {
+					name: 'span',
+					text: _self.user.username + ':&nbsp;',
+					styleObject: {
+						fontSize: "13px",
+						color: "rgba(245,209,1,1)"
+					}
+				}];
+				if (_self.user.isVip) {
+					var vip = {
+						name: 'span',
+						text: 'VIP&nbsp;',
+						styleObject: {
+							fontSize: "13px",
+							color: "#ff3040"
+						}
+					}
+					itemArr.push(vip);
+				}
+				itemArr.reverse();
+				var arr = {
+					list: itemArr,
+					user: {
+						headImg: _self.user.headImg
+					}
+				};
+				_self.addMsg(arr, _self.content, _self.user.username);
+				//console.log(_self.msgList)
+				//给所有人发消息
+				_self.user.content = _self.content;
+				_self.sendToAllUser(_self.user);
+				//
+				_self.content = '';
+				_self.setChatOpacity();
+				uni.hideKeyboard();
+				setTimeout(() => {
+					_self.scrollTop = _self.scrollTop + 1;
+				}, 300)
+			},
+			sendToAllUser(d) {
+				var data = {
+					type: 'msg',
+					data: d,
+					'anchorId': _self.anchorId
+				};
+				var backFun = "_self.sendSocketTask(" + JSON.stringify(data) + ")";
+				uni.$emit('getSubnvueParam', {
+					'type': 'livePlayerStatus',
+					'data': backFun
+				});
+			},
+			setChatOpacity() {
+				_self.opacityTime = 10;
+				_self.opacity = 1;
+				_self.opacityDjs = 1000;
+			},
+			userSendMsg(user) {
+				//console.log(user.content.length)
+				if (user.content.length == 0 || user.id == _self.user.id) {
+					return;
+				}
+				//console.log(user)
+				var itemArr = [{
+					name: 'span',
+					text: '' + user.content,
+					styleObject: {
+						fontSize: "13px",
+						color: "#fff",
+					}
+				}, {
+					name: 'span',
+					text: user.username + ':&nbsp;',
+					styleObject: {
+						fontSize: "13px",
+						color: "rgba(245,209,1,1)"
+					}
+				}];
+				if (user.isVip) {
+					var vip = {
+						name: 'span',
+						text: 'VIP&nbsp;',
+						styleObject: {
+							fontSize: "13px",
+							color: "#ff3040"
+						}
+					}
+					itemArr.push(vip);
+				}
+				itemArr.reverse();
+				var arr = {
+					list: itemArr,
+					user: {
+						headImg: user.headImg
+					}
+				};
+				_self.addMsg(arr, user.content, user.username);
+				_self.setChatOpacity();
+				setTimeout(() => {
+					_self.scrollTop = _self.scrollTop + 1;
+				}, 300)
+			},
+			addMsg(arr, content, username) {
+				if (!_self.isAndroid) {
+					arr.list = username + "：" + content;
+					_self.intoViwe = 'msg_' + (_self.msgList.length - 1);
+				}
+				_self.msgList.push(arr);
+			},
+			msgContent(e) {
+				//console.log(e.detail.value)
+				_self.content = e.detail.value;
+			},
+			userOutLoading(id) {
+				for (var i = 0; i < _self.userOnlneList.length; i++) {
+					if (_self.userOnlneList[i].id == id) _self.userOnlneList.splice(i, 1);
+				}
+				//console.log(_self.userOnlneList)
+			},
+			kickOutAnchor(d) {
+				//console.log(d)
+				_self.endLivePlayer(d);
+			},
+			closePlayer(aid) {
+				var text = _self.isAnchor > 0 ? "是否结束直播并结算" : "是否退出直播间";
+				uni.showModal({
+					content: text + '？',
+					success: (res) => {
+						if (res.confirm) {
+							if (_self.isAnchor > 0) {
+								_self.endLivePlayer();
+							} else {
+								_self.outRoom();
+							}
+						}
+					}
+				});
+			},
+			endLivePlayer(t = null) {
+				_self._showLoading('正在结算...');
+				uni.request({
+					url: api.apiData.endLivePlayer,
+					method: 'POST',
+					data: {
+						uid: _self.isAnchor
+					},
+					header: {
+						'Content-type': 'application/x-www-form-urlencoded'
+					},
+					success: (e) => {
+						//console.log(_self.isAnchor)
+						var r = e.data;
+						if (r.Code == 200) {
+							_self.liveStatus('_self.stop()', 0);
+							if (t != null && t.msg.length > 0) {
+								var text = "系统提示：" + t.msg + "\n";
+							} else {
+								var text = "";
+							}
+							text += "直播时长：" + r.Data.liveTime + " \n";
+							text += "房间收费：" + r.Data.roomGold + " \n";
+							text += "礼物道具：" + r.Data.giftGold + " \n";
+							text += "收益比例：" + r.Data.goldRatio + " \n";
+							text += "实际结算收益：" + r.Data.jsMoney + " \n";
+							text += "金币兑换比例：" + r.Data.exchange + " \n";
+							text += "" + r.Data.descText;
+							uni.showModal({
+								title: '本次直播结算账单',
+								content: text + "",
+								showCancel: false,
+								confirmText: "确定返回",
+								success: (row) => {
+									if (row.confirm) {
+										var data = {
+											type: 'endLive',
+											'anchorId': _self.isAnchor
+										};
+										_self.sendSever(data);
+										_self.skipUrl('/pages/live/list', 'newx');
+									}
+								}
+							});
+						} else {
+							api.showToast(r.Msg, 2000);
+							_self.skipUrl('/pages/live/list', 'newx');
+						}
+					},
+					complete: () => {
+						_self._hideLoading();
+					}
+				});
+			},
+			outRoom() {
+				uni.request({
+					url: api.apiData.logoutRoom,
+					method: 'POST',
+					data: {
+						uid: _self.user.id,
+						aid: _self.anchorId
+					},
+					header: {
+						'Content-type': 'application/x-www-form-urlencoded'
+					},
+					success: (e) => {
+						var r = e.data;
+						if (r.Code == 200) {
+							_self.userOnlneList = r.Data;
+							_self.skipUrl(_self.backUrl.url, _self.backUrl.type);
+						} else {
+							api.showToast(r.Msg, 3000);
+							_self.skipUrl('/pages/live/list', 'newx');
+						}
+					}
+				});
+			},
+			userOut() {
+				// _self.user
+				var data = {
+					type: 'userLogout',
+					data: _self.userOnlneList,
+					'anchorId': _self.anchorId
+				};
+				//_self.sendSever(data);
+			},
+			sendSever(data) {
+				var backFun = "_self.sendSocketTask(" + JSON.stringify(data) + ")";
+				uni.$emit('getSubnvueParam', {
+					'type': 'livePlayerStatus',
+					'data': backFun
+				});
+			},
+			// 跳转登录
+			skipUrl(uri = '/pages/login/login', type = 'newx') {
+				api.jumpUrl(uri, type)
+			},
+		},
+	};
+</script>
+
+<style>
+	.user-top-userimg {
+		width: 50rpx;
+		height: 50rpx;
+		border-radius: 50rpx;
+		margin-right: 10rpx;
+	}
+
+	.user-top-giftimg {
+		width: 80rpx;
+		height: 80rpx;
+		margin: 0 15rpx;
+	}
+
+	.user-top-text {
+		color: #D89720;
+		font-size: 13px;
+	}
+
+	.user-top-content {
+		border-radius: 20rpx;
+		background-color: rgba(0, 0, 0, 0.5);
+		padding: 15rpx 30rpx;
+		flex-direction: row;
+		align-items: center;
+		justify-content: center;
+	}
+
+	.user-top-gift {
+		padding-top: 250rpx;
+		align-items: center;
+	}
+
+	.font-ios {
+		font-size: 13px;
+		color: #FFFFFF;
+	}
+
+	.live-user-right {
+		//background-color: #007AFF;
+		flex-direction: column;
+	}
+
+	.live-user-img {
+		position: absolute;
+		width: 30rpx;
+		height: 30rpx;
+		left: 15rpx;
+		top: 11rpx;
+		border-radius: 50rpx;
+	}
+
+	.pause-live {
+		//width: 210rpx;
+		background-color: #D89720;
+	}
+
+	.resume-live {
+		//width: 210rpx;
+		background-color: #009688;
+	}
+
+	.stop-live {
+		width: 210rpx;
+	}
+
+	.setting-point {
+		color: rgba(255, 12, 208, 0.8);
+	}
+
+	.user-item-common {
+		color: #666;
+		background-color: #CCCCCC;
+		text-decoration: line-through;
+	}
+
+	.user-item-vip {
+		background-color: rgba(255, 12, 208, 0.8);
+	}
+
+	.user-item-head {
+		width: 50rpx;
+		height: 50rpx;
+		border-radius: 50rpx;
+	}
+
+	.is-disable {
+		color: #fff;
+		background-color: #009688;
+	}
+
+	.user-item-edit {
+		font-size: 26rpx;
+		background-color: #DD524D;
+		color: #FFFFFF;
+		padding: 10rpx;
+		margin-left: 10rpx;
+		border-radius: 10rpx;
+	}
+
+	.user-item-username {
+		font-size: 30rpx;
+		width: 240rpx;
+		//background-color: #007AFF;
+		padding: 8rpx 10rpx;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		lines: 1;
+	}
+
+	.user-list-item {
+		flex-direction: row;
+		lines: 1;
+		margin-bottom: 10rpx;
+		margin-top: 10rpx;
+	}
+
+	.user-list-all {
+		height: 550rpx;
+		padding: 20rpx 10rpx;
+		//background-color: #007AFF;
+	}
+
+	.user-list-title {
+		font-size: 33rpx;
+		color: #007AFF;
+		text-align: center;
+		padding: 30rpx 0 20rpx;
+		border-bottom-color: #ccc;
+		border-bottom-width: 1px;
+	}
+
+	.user-list-bg {
+		width: 530rpx;
+		height: 650rpx;
+		background-color: rgba(255, 255, 255, 0.98);
+		border-radius: 30rpx;
+	}
+
+	.setting-item-ico {
+		width: 60rpx;
+		height: 60rpx;
+	}
+
+	.setting-item-text {
+		color: #FFFFFF;
+		font-size: 26rpx;
+		margin-top: 10rpx;
+	}
+
+	.setting-item {
+		justify-content: center;
+		align-items: center;
+		width: 187rpx;
+	}
+
+	.setting-bg {
+		background-color: rgba(0, 0, 0, 0.8);
+		flex-direction: row;
+		lines: 1;
+		padding: 30rpx 0;
+		justify-content: center;
+	}
+
+	.stop-live {
+		background-color: rgba(254, 67, 101, 0.8);
+	}
+
+	.live-startPlayer-btn {
+		color: #FFFFFF;
+		font-size: 30rpx;
+	}
+
+	.live-start-player {
+		height: 80rpx;
+		width: 440rpx;
+		justify-content: center;
+		align-items: center;
+		background-color: rgba(255, 12, 208, 0.8);
+		border-radius: 50rpx;
+		margin-left: 30rpx;
+	}
+
+	.gift-top-title-right {
+		color: #FFFFFF;
+		font-size: 30rpx;
+		background-color: rgba(255, 12, 208, 0.8);
+		padding: 10rpx 20rpx;
+		border-radius: 10rpx;
+		//margin-left: 30rpx;
+		position: absolute;
+		right: 40rpx;
+	}
+
+	.gift-top-title-left {
+		color: #FFFFFF;
+		font-size: 30rpx;
+	}
+
+	.gift-top-title {
+		flex-direction: row;
+		border-bottom-color: #333;
+		border-bottom-width: 1rpx;
+		height: 100rpx;
+		align-items: center;
+		padding: 0 30rpx;
+		margin-bottom: 40rpx;
+	}
+
+	.gift-list-bg {
+		height: 560rpx;
+		background-color: rgba(0, 0, 0, 0.85);
+		border-top-left-radius: 30rpx;
+		border-top-right-radius: 30rpx;
+	}
+
+	.gift-list {
+		height: 410rpx;
+	}
+
+	.gift-item-img {
+		width: 80rpx;
+		height: 80rpx;
+	}
+
+	.text {
+		color: #FFFFFF;
+		font-size: 28rpx;
+		text-align: center;
+		margin: 10rpx 0 0 0;
+	}
+
+	.gift-list-item {
+		justify-content: center;
+		align-items: center;
+	}
+
+	.is-vip {
+		width: 40rpx;
+		height: 40rpx;
+		margin-right: 10rpx;
+	}
+
+	.live-gift-show {
+		flex-direction: row;
+		lines: 1;
+		//background-color: #009688;
+		height: 60rpx;
+		align-items: center;
+	}
+
+	.live-gift-list {
+		height: 280rpx;
+		margin-bottom: 30rpx;
+		justify-content: flex-end;
+	}
+
+	.live-user-go {
+		height: 60rpx;
+		background-color: rgba(245, 160, 1, 0.8);
+		width: 500rpx;
+		flex-direction: row;
+		lines: 1;
+		border-radius: 30rpx;
+		align-items: center;
+		padding: 0 20rpx 0 15rpx;
+	}
+
+	.live-view-item {
+		margin-bottom: 10rpx;
+		background-color: rgba(0, 0, 0, 0.3);
+		border-radius: 30rpx;
+		padding: 10rpx 20rpx 10rpx 50rpx;
+	}
+
+	.send-text {
+		color: #FFFFFF;
+		font-size: 26rpx;
+	}
+
+	.live-send-text {
+		background-color: rgba(245, 209, 1, 0.8);
+	}
+
+	.live-gift-img {
+		width: 60rpx;
+		height: 60rpx;
+	}
+
+	.live-gift {
+		height: 80rpx;
+		width: 80rpx;
+		border-radius: 50%;
+		background-color: rgba(0, 0, 0, 0.3);
+		margin-left: 30rpx;
+		justify-content: center;
+		align-items: center;
+	}
+
+	.live-send-msg {
+		height: 80rpx;
+		width: 380rpx;
+		background-color: rgba(0, 0, 0, 0.3);
+		border-radius: 50rpx;
+		font-size: 33rpx;
+		padding: 0 30rpx;
+		color: #FFFFFF;
+	}
+
+	.live-bottom {
+		margin-top: 10rpx;
+		padding: 30rpx 0;
+		flex-direction: row;
+		lines: 1;
+	}
+
+	.live-center-list {
+		width: 500rpx;
+		height: 200px;
+		margin-top: 30rpx;
+	}
+
+	.live-center {
+		justify-content: flex-end;
+		padding: 0 20rpx;
+	}
+</style>

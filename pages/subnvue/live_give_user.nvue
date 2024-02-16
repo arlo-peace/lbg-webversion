@@ -1,0 +1,98 @@
+<template>
+	<view class="give-user">
+		<image class="give-user-img" :src="nowGiveUser.headImg" mode="aspectFit"></image>
+		<view class="give-user-info">
+			<text class="give-username">{{nowGiveUser.username}}</text>
+			<image class="vip" src="@/static/imgs/vips.png" mode="aspectFit"></image>
+		</view>
+		<text class="give-gold">已打赏 {{nowGiveUser.giveGold}} 金币</text>
+		<!-- <text class="btn-close">关闭</text> -->
+	</view>
+</template>
+
+<script>
+	import api from "@/common/api.js";
+	var _self;
+	export default {
+		data() {
+			return {
+				nowGiveUser: {}, //打赏用户信息
+			}
+		},
+		onLoad() {
+			_self = this;
+			uni.$on('getSubnvueParam', (data)=> {
+				if(data.type == 'setGiveUser') _self.nowGiveUser = data.data;
+				//console.log(data);
+			});
+		},
+		onUnload() {
+			uni.$off('getSubnvueParam');
+		},
+		methods: {
+			openUser(e) {
+				//console.log(e)
+				_self.nowGiveUser = e;
+			},
+			closeUser() {
+				console.log('1')
+			},
+			// 跳转登录
+			skipUrl(uri = '/pages/login/login', type = 'new') {
+				api.jumpUrl(uri, type)
+			},
+		},
+	};
+</script>
+
+<style>
+	.give-user-info{
+		flex-direction: row;
+		lines: 1;
+		align-items: center;
+	}
+	.vip{
+		width: 80rpx;
+		height: 38rpx;
+		margin-left: 10rpx;
+		background-color: #FFFFFF;
+		border-radius: 10rpx;
+		padding: 10rpx 15rpx;
+	}
+	.btn-close{
+		padding: 15rpx 20rpx;
+		background-color: #009688;
+		border-radius: 30rpx;
+		color: #FFFFFF;
+		font-size: 28rpx;
+		margin-top: 30rpx;
+	}
+	.give-gold{
+		font-size: 35rpx;
+		color: rgba(254,67,101,0.8);
+	}
+	.give-username{
+		font-size: 35rpx;
+		color: #FFFFFF;
+		margin: 30rpx 0;
+	}
+	.give-user-img{
+		width: 100rpx;
+		height: 100rpx;
+		border-radius: 50rpx;
+		border-color: rgba(245,160,1,0.8);
+		border-width: 1px;
+	}
+	.give-user{
+		height: 400rpx;
+		width: 750rpx;
+		background-color: rgba(0,0,0,0.75);
+		border-top-left-radius: 40rpx;
+		border-top-right-radius: 40rpx;
+		align-items: center;
+		padding: 50rpx 0;
+		position: fixed;
+		bottom: 0;
+		left: 0;
+	}
+</style>

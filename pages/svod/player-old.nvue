@@ -1,0 +1,1022 @@
+<style scoped>
+	.page {
+		width: 750rpx;
+		background-color: #1D1D28;
+		position: relative;
+	}
+
+	.buy-pop {
+		position: absolute;
+		top: 0;
+		left: 0;
+		bottom: 0;
+		right: 0;
+		background-color: rgba(0, 0, 0, 0.8);
+		justify-content: center;
+		align-items: center;
+	}
+
+	.watch-free {
+		color: #FF8F00;
+		font-size: 12px;
+		padding: 20rpx 10rpx;
+	}
+
+	.btn-right {
+		background-image: linear-gradient(to right, #FF8F00, rgba(254, 67, 101, 0.8));
+		font-size: 13px;
+		color: #FFFFFF;
+		padding: 20rpx 50rpx;
+		border-radius: 20rpx;
+		//margin-left: 30rpx;
+	}
+
+	.btn-left {
+		background-color: rgba(255, 255, 255, 0.3);
+		font-size: 13px;
+		color: #FFFFFF;
+		padding: 20rpx 50rpx;
+		border-radius: 20rpx;
+	}
+
+	.buy-btn {
+		flex-direction: row;
+		margin-top: 30rpx;
+	}
+
+	.video-cover {
+		width: 150rpx;
+		height: 150rpx;
+		border-radius: 150rpx;
+		border-width: 2px;
+		border-color: #F5F5F5;
+	}
+
+	.buy-content {
+		align-items: center;
+		margin-top: -25px;
+	}
+
+	.user-content {
+		margin: 20rpx 0 30rpx 0;
+		font-size: 14px;
+		color: #666666;
+	}
+
+	.user-date {
+		font-size: 12px;
+		color: #888888;
+		margin-top: 10rpx;
+	}
+
+	.user-nickname {
+		font-size: 15px;
+		font-weight: 600;
+		color: #555555;
+		margin-top: 5rpx;
+	}
+
+	.user-info {
+		flex: 1;
+		border-bottom: 1px solid #F5F5F5;
+		flex-direction: column;
+	}
+
+	.user-cover {
+		width: 90rpx;
+		height: 90rpx;
+		border-radius: 90rpx;
+		border: 1px solid #F5F5F5;
+		margin-right: 25rpx;
+		background-color: rgba(0, 0, 0, 0.1);
+	}
+
+	.comment-send {
+		background-image: linear-gradient(to right, #FF8F00, rgba(254, 67, 101, 0.8));
+		height: 35px;
+		line-height: 35px;
+		width: 130rpx;
+		margin: 0 20rpx;
+		border-radius: 35px;
+		color: #FFFFFF;
+		text-align: center;
+		font-size: 14px;
+	}
+
+	.comment-input {
+		border: 1px solid #F5F5F5;
+		font-size: 12px;
+		height: 35px;
+		border-radius: 35px;
+		margin-left: 20rpx;
+		padding: 0 30rpx;
+		flex: 1;
+	}
+
+	.comment-bottom {
+		height: 50px;
+		align-items: center;
+		flex-direction: row;
+		border-top: 1px solid #F5F5F5;
+		/* #ifdef H5 */
+		position: fixed;
+		left: 0;
+		bottom: 0;
+		width: 100%;
+		/* #endif */
+		background-color: #FFFFFF;
+	}
+
+	.comment-list-item {
+		flex-direction: row;
+		margin-bottom: 30rpx;
+	}
+
+	.comment-list {
+		padding: 0 40rpx;
+		flex: 1;
+		/* #ifdef H5 */
+		height: 100px;
+		/* #endif */
+	}
+
+	.comment-title {
+		font-size: 16px;
+		font-weight: 600;
+		color: #000000;
+	}
+
+	.comment-head {
+		flex-direction: row;
+		height: 45px;
+		align-items: center;
+		justify-content: center;
+	}
+
+	.comment-content {
+		width: 750rpx;
+		border-radius: 40rpx 40rpx 0 0;
+		background-color: #FFFFFF;
+		flex-direction: column;
+	}
+
+	.pause-img {
+		position: absolute;
+		top: 0;
+		left: 0;
+		bottom: 150px;
+		width: 750rpx;
+		align-items: center;
+		justify-content: center;
+		//background-color: #007AFF;
+	}
+
+	.item-tag {
+		background-color: rgba(0, 0, 0, 0.5);
+		font-size: 12px;
+		color: #FFFFFF;
+		margin-right: 10rpx;
+		padding: 10rpx 20rpx;
+		border-radius: 15rpx;
+	}
+
+	.item-tag-list {
+		flex-direction: row;
+		margin: 15rpx 0;
+	}
+
+	.svod-right-cover {
+		border-radius: 90rpx;
+		border-color: #FFFFFF;
+		border-width: 5rpx;
+	}
+
+	.svod-right-item {
+		flex-direction: column;
+		align-items: center;
+		margin-top: 40rpx;
+	}
+
+	.svod-right {
+		position: absolute;
+		bottom: 200upx;
+		right: 30rpx;
+		height: 800upx;
+		align-items: center;
+		justify-content: flex-end;
+		padding-bottom: 24upx;
+		z-index: 2;
+	}
+
+	.svod-bottom {
+		position: absolute;
+		bottom: 132upx;
+		left: 0;
+		height: 320upx;
+		padding-left: 20rpx;
+		flex-direction: column;
+		justify-content: center;
+		align-items: flex-start;
+		overflow: hidden;
+		z-index: 999;
+	}
+	.svod-bottom-title{
+		height: 50upx;
+		width: 550upx;
+	}
+	.svod-bottom-tag{
+		height: 80upx;
+		width: 550upx;
+	}
+	.svod-bottom-item{
+		height: 60upx;
+		width: 550upx;
+	}
+
+	.icon {
+		width: 66rpx;
+		height: 66rpx;
+	}
+
+	.load-img {
+		position: fixed;
+		top: 0;
+		bottom: 0;
+		left: 0;
+		right: 0;
+		z-index: 1;
+		justify-content: center;
+		align-items: center;
+		background-color: #1D1D28;
+	}
+
+	.is-buy {
+		font-size: 10px;
+		color: #FFFFFF;
+		background-image: linear-gradient(to right, #FF8F00, rgba(254, 67, 101, 0.8));
+		margin-top: -18rpx;
+		height: 36rpx;
+		line-height: 36rpx;
+		padding: 0 10rpx;
+		border-radius: 10rpx;
+	}
+
+	.svod-bottom-item-text {
+		flex-direction: row;
+		font-size: 12px;
+		background-color: rgba(111, 111, 111, .5);
+		border-radius: 10px;
+		color: #FFF;
+		overflow: hidden;
+		align-items: center;
+		justify-content: flex-start;
+		padding: 0 10upx;
+		width: 540upx;
+		height: 60upx;
+	}
+	.svod-bottom-item-text-1 {
+		color:#FF8F00;
+		font-size:26upx;
+		lines:1;
+		text-overflow:ellipsis;
+	}
+
+	.svod-bottom-item-text-image {
+		width: 18px;
+		height: 15px;
+		margin-right: 8upx;
+	}
+
+	.tabbar {
+		position: fixed;
+		bottom: 0;
+		left: 0;
+		z-index: 99;
+		flex-direction: row;
+		align-items: center;
+		justify-content: flex-end;
+	}
+
+	.tabbar-item {
+		width: 20%;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+	}
+
+	.tabbar-item-image {
+		margin-bottom: 3px;
+	}
+
+	.tabbar-midIcon {
+		position: fixed;
+		left: 50%;
+		bottom: 20px;
+		z-index: 100;
+	}
+</style>
+<template>
+	<view class="page" :style="{'height': windowHeight +'px'}">
+		<css-loading ref="cssLoading"></css-loading>
+		<!-- main -->
+		<!-- #ifdef APP-PLUS -->
+		<image :src="item.cover" mode="aspectFill" @load="loadedmetadata" style="position: absolute;z-index: -1;">
+		</image>
+		<!-- #endif -->
+		<template v-if="info.isPlay">
+			<video ref="myVideo" id="myVideo" style="width:750rpx;"
+				:style="{height: videoHeight + 'px'}" :src="item.url" :loop="true" :autoplay="true" :controls="true"
+				:object-fit="objectFit" :show-progress="true" :show-play-btn="false" :show-fullscreen-btn="false" :enable-play-gesture="false"
+				:show-center-play-btn="false" :enable-progress-gesture="false" @play="onplay" @error="onerror"
+				@timeupdate="timeupdate">
+			</video>
+			<!--pause-->
+			<view class="pause-img" @click="playVideoStatus(!playStatus)">
+				<image src="/static/svod/btn_player.png" style="width:150rpx;height:150rpx;margin-bottom:-100px;"
+					v-if="!playStatus"></image>
+			</view>
+			<!--right-->
+			<view class="svod-right" :style="{bottom: os == 'android' ? '200upx' : '240upx'}">
+				<view class="svod-right-cover" @tap="goHome(info.uid)">
+					<image :src="getHeadImg(item.cover, info.headimgurl)" mode="aspectFill"
+						style="width: 90rpx;height: 90rpx;border-radius: 90rpx;"></image>
+				</view>
+				<text class="is-buy" v-if="user.isVip">尊贵VIP</text>
+				<text class="is-buy" v-else-if="info.isBuy">已购买</text>
+				<text class="is-buy" v-else-if="info.gold==0">限 免</text>
+				<view class="svod-right-item" @click="videoLike">
+					<image class="icon" :src="'/static/svod/btn_like_'+info.like+'.png'" mode="aspectFill"></image>
+					<text
+						style="font-size:24rpx;font-weight: 500;text-align: center;color: #FFFFFF;">{{info.likeSum}}</text>
+				</view>
+				<view class="svod-right-item" @click="videoCollect">
+					<image class="icon" :src="'/static/svod/btn_collection_'+info.collect+'.png'"></image>
+					<text
+						style="font-size:24rpx;font-weight: 500;text-align: center;color: #FFFFFF;">{{info.collectSum}}</text>
+				</view>
+				<view class="svod-right-item" @click="videoFollow">
+					<image class="icon" :src="'/static/svod/follow_'+(info.fans ? 1 : 0)+'.png'" mode="aspectFill">
+					</image>
+				</view>
+				<view class="svod-right-item" @click="comment(0)">
+					<image class="icon" src="/static/svod/btn_comment.png" mode="aspectFill"></image>
+					<text
+						style="font-size:24rpx;font-weight: 500;text-align: center;color: #FFFFFF;">{{info.comment}}</text>
+				</view>
+				<view class="svod-right-item" @click="jumpUrl('/pages/member/poster', 'new')">
+					<image class="icon" src="/static/svod/btn_share.png" mode="aspectFill"></image>
+					<text style="font-size:24rpx;font-weight: 500;text-align: center;color: #FFFFFF;">分享</text>
+				</view>
+			</view>
+			<!--bottom-->
+			<view class="svod-bottom" :style="{bottom: os == 'android' ? '220upx' : '260upx'}">
+				<view class="svod-bottom-item" v-if="showFree">
+					<text class="watch-free" v-if="showFree">免费观看次数：{{user.free}} / {{user.freeTot}}</text>
+				</view>
+				<view class="svod-bottom-title" v-if="info.nickname">
+					<text
+						style="color: #FFFFFF;font-size: 32rpx;font-weight: 600;padding: 10rpx;padding-left: 0;">@{{info.nickname}}</text>
+				</view>
+				<view class="svod-bottom-tag" v-if="info.tagList.length > 0">
+					<view class="item-tag-list">
+						<text class="item-tag" v-for="(t, i) in info.tagList" :key="i">{{t.name}}</text>
+					</view>
+				</view>
+				<view class="svod-bottom-item" v-if="item.title">
+					<text
+						style="color: #FFFFFF;font-size: 28rpx;padding: 10rpx;padding-left: 0;lines: 1;width: 600rpx;text-overflow: ellipsis;">{{item.title}}</text>
+				</view>
+				<view class="svod-bottom-item" v-if="announcement.title">
+					<view class="svod-bottom-item-text" v-if="announcement.title">
+						<image class="svod-bottom-item-text-image" src="/static/svod/open.png"></image>
+						<text class="svod-bottom-item-text-1" @click="jumpAnnouncement">{{announcement.title}}</text>
+					</view>
+				</view>
+			</view>
+		</template>
+		<template v-else>
+			<image :lazy-load="true" :fade-show="false" :src="item.cover" mode="aspectFill"
+				style="width: 750rpx; filter: blur(5px);" :style="{'height': (windowHeight)+ 'px'}">
+			</image>
+			<!-- 收费弹窗 -->
+			<view class="buy-pop" @touchmove.stop.prevent="moveHandle">
+				<view class="buy-content">
+					<image style="width:150rpx;height:150rpx;border-radius:150rpx;border:2px solid #F5F5F5;"
+						mode="aspectFill" :src="getHeadImg(item.cover, info.headimgurl)">
+					</image>
+					<text style="color: #FFFFFF;font-size: 15px;margin: 50rpx 50rpx 30rpx 50rpx;">{{item.title}}</text>
+					<text style="font-size:12px;color:#CCCCCC;">观看本影片需要支付{{info.gold}}金币</text>
+					<view class="buy-btn">
+						<!-- <text class="btn-left" @click="closeBuy">忍住不看</text> -->
+						<text class="btn-right" @click="buyVideo">支付金币</text>
+					</view>
+				</view>
+			</view>
+		</template>
+		<!-- 评论列表 -->
+		<uni-popup ref="popupComment" type="bottom" @change="commentChange">
+			<view class="comment-content" :style="'height:'+(windowHeight/2+h5Tabbar)+'px'">
+				<view class="comment-head">
+					<text class="comment-title">评论 ({{info.comment}}条)</text>
+				</view>
+				<scroll-view :scroll-y="true" :show-scrollbar="false" @scrolltolower="moreComment" class="comment-list">
+					<template v-if="commentList.length && info.comment">
+						<view class="comment-list-item" v-for="(c, i) in commentList" :key="i">
+							<image class="user-cover" :src="c.cover" mode="aspectFill"></image>
+							<view class="user-info">
+								<view style="flex-direction: row;">
+									<text class="user-nickname">{{c.nickname}}</text>
+									<text class="user-nickname" style="color:#FF8F00;margin-left:10rpx;"
+										v-if="c.uid==userId">(我)</text>
+								</view>
+								<text class="user-date">{{utils.timeTodate('Y-m-d H:i', c.add_time)}}</text>
+								<text class="user-content">{{c.content}}</text>
+							</view>
+						</view>
+					</template>
+					<view style="margin:80px 0;align-items:center;" v-if="!info.comment">
+						<image src="/static/empty.png" style="width:100px;height:100px;"></image>
+						<text style="font-size:13px;color:#666;margin-top:10px;">当前还没有评论</text>
+					</view>
+				</scroll-view>
+				<view class="comment-bottom" :style="{ bottom: keyheight+'px' }">
+					<input class="comment-input" type="text" placeholder="我来说几句 ~" v-model="commentContent"
+						:adjust-position="false" :cursor-spacing="4" />
+					<text class="comment-send" @click="sendCommentContent">发送</text>
+				</view>
+			</view>
+		</uni-popup>
+		<view class="tabbar" :style="tabbarStyle">
+			<view class="tabbar-item" :class="`tba${index}`"
+				@click="clickTabbar(index)" v-for="(tab,index) in tabbarList"
+				:style="{width:hwidth / (tabbarList.length) + 'px'}" :key="index">
+				<image v-if="!hasMid || (hasMid && index != midIndex)" :src="index == 1 ? tab.selectedIconPath : tab.iconPath"
+					class="tabbar-item-image" :style="{width:iconWidth,height:iconWidth}"></image>
+				<view class="tabbar-item-image" :style="{width:iconWidth,height:iconWidth}" v-else></view>
+				<text
+					:style="{fontSize:tabbar.fontSize,color:index == 1 ? tabbar.selectedColor : tabbar.color}">{{tab.text}}</text>
+			</view>
+		</view>
+		<view class="tabbar-midIcon" v-if="hasMid" @click="goToRec" :style="midStyle">
+			<image :src="tabbar.midButton.iconPath"
+				:style="{width:tabbar.midButton.iconWidth,height:tabbar.midButton.iconWidth}"></image>
+		</view>
+		<css-loading ref="cssLoading"></css-loading>
+	</view>
+</template>
+<script>
+	var system = uni.getSystemInfoSync();
+	var bottom = 0;
+	// #ifdef H5
+	bottom = 50;
+	// #endif
+	import utils from '@/components/shoyu-date/utils.filter.js';
+	import cssLoading from '@/components/css-loading/loading.vue'
+	import api from '@/common/api.js';
+	import pages from '@/pages.json'
+	export default {
+		components: {
+			cssLoading
+		},
+		data() {
+			return {
+				utils: utils,
+				h5Tabbar: bottom + 80,
+				statusBarHeight: system.statusBarHeight,
+				windowHeight: system.windowHeight + bottom,
+				screenHeight: system.screenHeight,
+				curIndex: 0,
+				playStatus: true,
+				userId: 0,
+				fireTime: 5,
+				item: {
+					id: 0,
+					url: '',
+				},
+				info: {
+					isPlay: true,
+					nickname: 'loading...',
+					like: 0,
+					uid: 0,
+					likeSum: 0,
+					comment: 0,
+					headimgurl: '',
+					isBuy: false,
+					gold: 0,
+					fans: false,
+					fansSum: 0
+				},
+				showLoading: true,
+				loadingImg: '/static/load.gif',
+				showError: false,
+				videoObj: {},
+				commentPage: 1,
+				commentList: [],
+				user: {
+					isVip: false,
+					freeTot: 0,
+					free: 0
+				},
+				commentContent: '',
+				likeTime: 0,
+				followTime: 0,
+				collectTime: 0,
+				showFree: false,
+				emptyUrl: true,
+				one: false,
+				objectFit: 'fill',
+				keyheight: 0,
+				announcement: {
+					title: null,
+					url: null
+				},
+				safeAreaBottom: 0,
+				hwidth: 700,
+				tabbar: pages.tabBar,
+				queryObj: null,
+				hasMid: false,
+				midIndex: 0,
+				hheight: 700,
+				os: 'android'
+			}
+		},
+		onLoad(e) {
+			this.item = JSON.parse(e.info);
+			this._showLoading()
+			let login = api.getLogins();
+			if (login) this.userId = login.userId;
+			this.getInitPlayer();
+		},
+		computed: {
+			videoHeight(){
+				let height = this.safeAreaBottom + 50
+				return this.hheight - height;
+			},
+			tabbarStyle() {
+				let height = this.safeAreaBottom + 50 + 'px'
+				return {
+					width: this.hwidth + 'px',
+					height: height,
+					color: pages.tabBar.color,
+					backgroundColor: pages.tabBar.backgroundColor,
+					fontSize: pages.tabBar.fontSize,
+					borderTop: '0upx solid ' + pages.tabBar.borderStyle,
+					paddingBottom: (this.safeAreaBottom / 2) + 'px'
+				}
+			},
+			midStyle() {
+				return {
+					left: (this.hwidth / 2) - (parseFloat(pages.tabBar.midButton.iconWidth.replace('px', '')) / 2) + 'px',
+					bottom: uni.upx2px(50) + this.safeAreaBottom + 'px'
+				}
+			},
+			iconWidth() {
+				return pages.tabBar.iconWidth ? pages.tabBar.iconWidth : '24px'
+			},
+			tabbarList() {
+				const list = []
+				const tabbar = pages.tabBar
+				for (let i in tabbar.list) {
+					list.push(tabbar.list[i])
+					if(tabbar.midButton)
+					{
+						if (parseInt(i) + 1 == tabbar.list.length / 2) {
+							list.push(tabbar.midButton)
+						}
+					}
+				}
+				return list
+			}
+		},
+		created() {
+			this.videoObj = uni.createVideoContext('myVideo');
+			this.queryObj = uni.createSelectorQuery().in(this);
+			uni.onKeyboardHeightChange(res => {
+				this.keyheight = res.height;
+			})
+			const systemInfo = uni.getSystemInfoSync()
+			let safeArea = systemInfo.safeArea;
+			let screenHeight = systemInfo.screenHeight;
+			this.hwidth = systemInfo.windowWidth
+			this.hheight = screenHeight
+			this.os = systemInfo.osName
+			this.safeAreaBottom = screenHeight - safeArea.bottom;
+			this.hasMid = typeof pages.tabBar.midButton != 'undefined'
+			if(this.hasMid)
+			{
+				this.midIndex = pages.tabBar.list.length / 2
+			}
+		},
+		onShow() {
+			if (this.one) {
+				let login = api.getLogins();
+				if (login) this.userId = login.userId;
+				this.getInitPlayer()
+			}
+		},
+		onHide() {
+			this.one = true;
+			this.playVideoStatus(false);
+		},
+		methods: {
+			clickTabbar(index){
+				if(index == this.midIndex && this.hasMid)
+				{
+					this.goToRec()
+				}else{ 
+					api.jumpUrl(`/${this.tabbarList[index].pagePath}`,'tab')
+				}
+			},
+			goToRec() {
+				if (!api.getLogins()) {
+					api.showToast('请先登录', 1500);
+					setTimeout(() => {
+						api.jumpUrl('/pages/login/login', 'new');
+					}, 500);
+				} else {
+					api.jumpUrl('/pages/recharge/recharge?type=2', 'new');
+				}
+			},
+			jumpAnnouncement() {
+				if (this.announcement.url) {
+					api.jumpUrl(this.announcement.url, 'outer')
+				}
+			},
+			getConfig() {
+				uni.request({
+					url: api.apiData.svodConfig,
+					method: 'POST',
+					data: {
+						uid: this.userId,
+						did: this.did
+					},
+					header: {
+						'Content-type': 'application/x-www-form-urlencoded'
+					},
+					success: (e) => {
+						if (e.statusCode == 200) {
+							var r = e.data;
+							if (r.Code == 200) {
+								var d = r.Data;
+								this.announcement = {
+									title: d.announcement,
+									url: d.announcement_url == '#' ? null : d.announcement_url
+								}
+							}
+						}
+					}
+				});
+			},
+			_showLoading(text = null) {
+				this.$nextTick(() => {
+					this.$refs.cssLoading.open(text)
+				})
+			},
+			_hideLoading() {
+				this.$nextTick(() => {
+					this.$refs.cssLoading.close()
+				})
+			},
+			getInitPlayer() {
+				uni.request({
+					url: api.apiData.playSvodVideo,
+					method: 'POST',
+					data: {
+						uid: this.userId,
+						vid: this.item.id,
+					},
+					header: {
+						'Content-type': 'application/x-www-form-urlencoded'
+					},
+					success: (e) => {
+						var d = e.data;
+						if (d.Code != 200) return this.back(d.Msg);
+						this.info = d.Data.item;
+						this.info.isPlay = true;
+						this.user = d.Data.user;
+						this.getPlayerStatus();
+						this.getConfig()
+					},
+					complete: () => {
+						let timer = setTimeout(() => {
+							this.emptyUrl = false;
+							this._hideLoading()
+							clearTimeout(timer);
+						}, 1000);
+					}
+				});
+			},
+			videoCollect() {
+				if (!this.userId) return api.showToast('请先登录');
+				// 限制连续点赞时间
+				if (this.collectTime < 1) {
+					let collect = this.info.collect == 1 ? 0 : 1;
+					this.info.collect = collect;
+					if (collect == 1) {
+						this.info.collectSum++;
+					} else {
+						this.info.collectSum--;
+					}
+					this.collectTime = 3;
+					uni.request({
+						url: api.apiData.collectSvodVideo,
+						method: 'POST',
+						data: {
+							userId: this.userId,
+							shortId: this.info.id
+						},
+						header: {
+							'Content-type': 'application/x-www-form-urlencoded'
+						},
+						success: (e) => {
+							console.log('收藏成功');
+						},
+						complete: () => {
+							this.videoCollectTime();
+						}
+					});
+				} else {
+					api.showToast('操作太快，' + this.collectTime + '秒后再试');
+				}
+			},
+			videoCollectTime() {
+				if (this.collectTime > 0) {
+					var timer1 = setTimeout(() => {
+						this.collectTime--;
+						this.videoCollectTime();
+						clearTimeout(timer1);
+					}, 1000);
+				}
+			},
+			videoFollow() {
+				if (!this.userId) return api.showToast('请先登录');
+				// 限制连续点赞时间
+				if (this.followTime < 1) {
+					let follow = !this.info.fans;
+					this.info.fans = follow;
+					if (follow) {
+						this.info.fansSum++;
+					} else {
+						this.info.fansSum--;
+					}
+					this.followTime = 3;
+					uni.request({
+						url: api.apiData.shortVideoFocus,
+						method: 'POST',
+						data: {
+							userId: this.userId,
+							shortId: this.info.id
+						},
+						header: {
+							'Content-type': 'application/x-www-form-urlencoded'
+						},
+						success: (e) => {
+							console.log('关注成功');
+						},
+						complete: () => {
+							this.videoFollowTime();
+						}
+					});
+				} else {
+					api.showToast('操作太快，' + this.followTime + '秒后再试');
+				}
+			},
+			videoFollowTime() {
+				if (this.followTime > 0) {
+					var timer = setTimeout(() => {
+						this.followTime--;
+						this.videoFollowTime();
+						clearTimeout(timer);
+					}, 1000);
+				}
+			},
+			getPlayerStatus() {
+				// 非VIP，收费视频，未购买
+				if (!this.user.isVip && parseInt(this.info.gold) > 0 && !this.info.isBuy) {
+					if (parseInt(this.user.free) > 0) {
+						// 扣除免费次数
+						this.user.free--;
+						this.freeWatch();
+					} else {
+						this.info.isPlay = false;
+						this.showLoading = false;
+						this._hideLoading()
+					}
+				}
+			},
+			goHome(uid) {
+				if (uid == 0) {
+					api.showToast('模拟数据，请重启APP', 2000);
+					return
+				}
+				var param = {
+					url: '/pages/svod/class',
+					t: 'new'
+				}
+				api.jumpUrl('/pages/svod/home?type=' + JSON.stringify(param) + '&uid=' + uid, 'new');
+			},
+			// 金币购买视频
+			buyVideo() {
+				if (!this.userId) return api.showToast('请先登录');
+				this._showLoading('正在支付...');
+				uni.request({
+					url: api.apiData.goldBuyVideo,
+					method: 'POST',
+					data: {
+						uid: this.userId,
+						vid: this.info.id
+					},
+					header: {
+						'Content-type': 'application/x-www-form-urlencoded'
+					},
+					success: (e) => {
+						var d = e.data;
+						api.showToast(d.Msg, 1500)
+						if (d.Code == 201) {
+							if ('金币不足，请先充值' == res.data.Msg) {
+								_self.showFire()
+							}
+							return;
+						}
+						this.info.isBuy = this.info.isPlay = true;
+					}
+				});
+			},
+			// 扣除免费观看次数
+			freeWatch(vid) {
+				if (this.userId == 0) return this.user.free = 0;
+				uni.request({
+					url: api.apiData.updateFree,
+					method: 'POST',
+					data: {
+						uid: this.userId,
+						vid: this.info.id
+					},
+					header: {
+						'Content-type': 'application/x-www-form-urlencoded'
+					},
+					success: (e) => {
+						this.info.isBuy = this.info.isPlay = this.showFree = true;
+					}
+				});
+			},
+			playVideoStatus(statu) {
+				this.playStatus = statu;
+				if (!this.playStatus) {
+					this.videoObj.pause();
+				} else {
+					this.videoObj.play();
+				}
+			},
+			getHeadImg(cover, head) {
+				return head && head.length > 10 ? head : cover;
+			},
+			videoLike() {
+				if (!this.userId) return api.showToast('请先登录');
+				// 限制连续点赞时间
+				if (this.likeTime < 1) {
+					let like = this.info.like == 1 ? 0 : 1;
+					this.info.like = like;
+					if (like == 1) {
+						this.info.likeSum++;
+					} else {
+						this.info.likeSum--;
+					}
+					this.likeTime = 3;
+					uni.request({
+						url: api.apiData.likeSvodVideo,
+						method: 'POST',
+						data: {
+							uid: this.userId,
+							vid: this.info.id
+						},
+						header: {
+							'Content-type': 'application/x-www-form-urlencoded'
+						},
+						success: (e) => {
+							// /console.log('点赞成功');
+						},
+						complete: () => {
+							this.videoLikeTime();
+						}
+					});
+				} else {
+					api.showToast('操作太快，' + this.likeTime + '秒后再试');
+				}
+			},
+			videoLikeTime() {
+				if (this.likeTime > 0) {
+					var timer = setTimeout(() => {
+						this.likeTime--;
+						this.videoLikeTime();
+						clearTimeout(timer);
+					}, 1000);
+				}
+			},
+			comment(isOpen) {
+				this._showLoading('加载中...');
+				uni.request({
+					url: api.apiData.svodVideoComm,
+					method: 'POST',
+					data: {
+						uid: this.userId,
+						vid: this.item.id,
+						page: this.commentPage
+					},
+					header: {
+						'Content-type': 'application/x-www-form-urlencoded'
+					},
+					success: (e) => {
+						var d = e.data;
+						if (d.Code != 200) return api.showToast(d.Msg, 1500);
+						if (this.commentPage > 1) {
+							this.commentList = this.commentList.concat(d.Data.list);
+						} else {
+							this.commentList = d.Data.list;
+						}
+						if (!isOpen) this.$refs['popupComment'].open();
+						this._hideLoading();
+					}
+				});
+			},
+			moreComment() {
+				this.commentPage++;
+				this.comment(1);
+			},
+			commentChange(e) {
+				if (!e.show) this.initCommentData();
+			},
+			initCommentData() {
+				this.commentPage = 1;
+				this.commentContent = '';
+				this.commentList = [];
+			},
+			sendCommentContent() {
+				if (!this.commentContent.length) return;
+				if (!this.userId) return api.showToast('请先登录');
+				this._showLoading('提交中...');
+				uni.request({
+					url: api.apiData.sendVideoComm,
+					method: 'POST',
+					data: {
+						uid: this.userId,
+						vid: this.item.id,
+						content: this.commentContent
+					},
+					header: {
+						'Content-type': 'application/x-www-form-urlencoded'
+					},
+					success: (e) => {
+						var d = e.data;
+						api.showToast(d.Msg);
+						if (d.Code != 200) return;
+						this.commentContent = '';
+						if (d.Data) {
+							this.commentList.unshift(d.Data);
+							this.info.comment++;
+						}
+					}
+				});
+			},
+			showFire() {
+				if (_self.fireTime > 0) {
+					api.showToast(_self.fireTime + "秒后自动进入充值页面", 900)
+					_self.fireTime--
+					setTimeout(() => {
+						_self.showFire()
+					}, 1000)
+				} else {
+					_self.fireTime = 5
+					_self.gotoRecharge()
+				}
+			},
+			gotoRecharge() {
+				api.jumpUrl('/pages/recharge/recharge', 'new');
+			},
+			onplay(e) {
+				// 播放
+				//console.log('play');
+			},
+			onerror(err) {
+				if (!this.emptyUrl) {
+					this.back('播放失败，请检查网络是否异常');
+				}
+			},
+			timeupdate(e) {
+				let d = e.detail;
+				if (d.currentTime > 0.1) this.showLoading = false;
+			},
+			jumpUrl(u, t) {
+				api.jumpUrl(u, t);
+			},
+			back(msg) {
+				api.showToast(msg, 2000);
+				var timer = setTimeout(() => {
+					uni.navigateBack();
+					clearTimeout(timer)
+				}, 1000);
+			},
+			moveHandle() {}
+		}
+	}
+</script>

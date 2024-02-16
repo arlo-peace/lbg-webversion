@@ -1,0 +1,6 @@
+.hbuilder
+./node_modules
+./unpackage/cache
+./unpackage/debug
+./unpackage/dist
+./unpackage/release

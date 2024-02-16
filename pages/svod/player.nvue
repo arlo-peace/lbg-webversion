@@ -1,0 +1,62 @@
+<style scoped>
+	.page {
+		position: absolute;
+		left: 0;
+		right: 0;
+		top: 0;
+		bottom: 0;
+		background-color: #000000;
+	}
+</style>
+<template>
+	<view class="page">
+		<uni-push slot="one"
+			:details="true"
+			:windowHeight="windowHeight" 
+			:windowWidth="windowWidth"
+			:statusBarHeight="statusBarHeight" 
+			:userId="userId"
+			:videoId="videoId"
+			:playStatus="playStatus">
+		</uni-push>
+	</view>
+</template>
+<script>
+	var system = uni.getSystemInfoSync();
+	import api from '@/common/api.js';
+	import uniPush from '@/components/svod/push';
+	export default {
+		components: {
+			uniPush
+		},
+		data() {
+			return {
+				statusBarHeight: system.statusBarHeight,
+				windowHeight: system.windowHeight - system.statusBarHeight,
+				windowWidth: system.windowWidth,
+				curIndex: 0,
+				playStatus: true,
+				userId: 0,
+				videoId: 0
+			}
+		},
+		onLoad(e) {
+			const info = JSON.parse(e.info)
+			this.videoId = info.id
+			// console.log("aaa", system)
+		},
+		onShow(e) {
+			//console.log('onShow');
+			this.playStatus = true;
+			let login = api.getLogins();
+			if (login) this.userId = login.userId;
+		},
+		onHide() {
+			//console.log('onHide');
+			this.playStatus = false;
+		},
+		methods: {
+			
+		}
+	}
+</script>

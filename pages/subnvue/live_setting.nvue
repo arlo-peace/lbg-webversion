@@ -1,0 +1,236 @@
+<template>
+	<view class="live-setting" v-if="showSetting">
+		<view class="live-setting-bg">
+			<text class="player-title">直播间相关设置</text>
+			<view class="live-setting-item">
+				<text class="player-name">直播间标题</text>
+				<input type="text" class="player-content" placeholder="1至8个中英文字符" maxlength="8" @input="setParam" id="playerName"/>
+			</view>
+			<view class="live-setting-item">
+				<text class="player-name">直播间封面</text>
+				<view style="flex-direction:row;lines:1;margin-top:17rpx;margin-bottom:17rpx;" v-if="param.playerImg.length==0" @click="selectImg">
+					<text style="font-size:30rpx;color:#999;">上传封面或实时截图</text>
+				</view>
+				<view style="flex-direction:row;lines:1;margin-top:17rpx;margin-bottom:17rpx;" v-else>
+					<text style="font-size:30rpx;color:#007AFF;">已设置</text>
+					<text style="font-size:30rpx;color:#007AFF;position:absolute;right: 0;" @click="selectImg">重新选择</text>
+				</view>
+			</view>
+			<view class="live-setting-item" style="border-bottom-color: #FFFFFF">
+				<view style="lines: 1;flex-direction: row;">
+					<text class="player-name">是否金币房</text>
+					<image class="live-mode" :src="liveModeIcon" mode="aspectFill" @click="switchMode"></image>
+				</view>
+			</view>
+			<view v-if="isGold">
+				<view style="flex-direction: row;">
+					<text class="player-param">房费收取:</text>
+					<input type="number" class="player-content player-param-input" maxlength="3" @input="setParam" id="playerGold" placeholder="金币数"/>
+					<text class="player-param-right">金币</text>
+				</view>
+				<view style="flex-direction: row;">
+					<text class="player-param">试看时间:</text>
+					<input type="number" class="player-content player-param-input" placeholder="0或空则不支持试看" maxlength="3" @input="setParam" id="tryTime"/>
+					<text class="player-param-right">分钟</text>
+				</view>
+			</view>
+			
+			<view style="flex-direction: row;margin-top: 15rpx;">
+				<text class="setting-btn" @click="btnParam">确定</text>
+				<text class="setting-btn close-btn" @click="btnClose">关闭</text>
+			</view>
+		</view>
+	</view>
+</template>
+
+<script>
+	import api from "@/common/api.js";
+	var _self;
+	export default {
+		data() {
+			return {
+				param: {
+					playerName: '',
+					playerImg: '',
+					playerGold: 0,
+					tryTime: 0, //试看时间
+				},
+				showSetting: false,
+				djsTime: 1,
+				
+				liveModeIcon: '/static/live/status0.png',
+				isGold: false,
+				
+				minTrytime: 0,
+			}
+		},
+		onLoad() {
+			_self = this;
+			_self.djsShow();
+			uni.$on('getSubnvueParam', (data)=> {
+				if(data.type == 'liveSetting'){
+					eval(data.data)
+				}
+			});
+		},
+		methods: {
+			setMinTrytime(e) {
+				//console.log(e)
+				_self.minTrytime = e;
+			},
+			switchMode() {
+				_self.isGold = !_self.isGold;
+				if(_self.isGold) {
+					_self.liveModeIcon = '/static/live/status1.png';
+				}else{
+					_self.liveModeIcon = '/static/live/status0.png';
+				}
+			},
+			setParam(e) {
+				_self.param[e.target.id] = e.detail.value;
+				//console.log(_self.param)
+			},
+			selectImg() {
+				uni.chooseImage({
+					count: 1,
+					sizeType: ['compressed'],
+					success(res) {
+						_self.param.playerImg = res.tempFilePaths[0]
+						//console.log(_self.param);
+					},
+					fail: ()=> {
+						//api.showToast('已取消选择视频封面');
+					}
+				});
+			},
+			djsShow() {
+				setTimeout(()=>{
+					_self.djsTime --;
+					if(_self.djsTime > 0){
+						_self.djsShow();
+					}else{
+						const anchor_id = uni.getStorageSync('anchor_id_'+api.appkey);
+						if(anchor_id==0) _self.showSetting = true;
+					}
+					//console.log(_self.showSetting)
+				}, 1000);
+			},
+			btnClose() {
+				const subNVue = uni.getSubNVueById('live_setting');
+				subNVue.hide('slide-in-bottom', 10);
+				api.jumpUrl('/pages/live/list', 'newx');
+			},
+			btnParam() {
+				if(_self.param.playerName.length == 0){
+					api.showToast("请输入直播间名称", 1500);
+					return
+				}
+				if(_self.isGold){
+					if(_self.param.playerGold == 0) {
+						api.showToast("请输入收费金币数", 1500);
+						return
+					}
+					if(_self.param.tryTime < _self.minTrytime && _self.param.tryTime!=0) {
+						api.showToast("最少试看时间"+_self.minTrytime+'分钟', 1500);
+						return
+					}
+				}
+				uni.$emit('getSubnvueParam', {'type':'roomSetting','data':_self.param});
+			}
+		}
+	}
+</script>
+
+<style>
+	.player-param-right{
+		font-size: 30rpx;
+		color: #444;
+		height: 73rpx;
+		line-height: 73rpx;
+		margin-left: 10rpx;
+	}
+	.player-param{
+		font-size: 30rpx;
+		//background-color: #009688;
+		text-align: right;
+		height: 73rpx;
+		line-height: 75rpx;
+		color: #444;
+		padding-right: 15rpx;
+	}
+	.player-param-input{
+		width: 330rpx;
+		border: 1px solid #f5f5f5;
+		border-radius: 10rpx;
+		padding: 10rpx 15rpx;
+		//background-color: #007AFF;
+	}
+	.live-trytime{
+		width: 380rpx;
+		//background-color: #007AFF;
+		position: absolute;
+		right: 0;
+		border-bottom: 1px solid #f5f5f5;
+		padding-bottom: 15rpx;
+	}
+	.live-gold{
+		width: 160rpx;
+		border-bottom: 1px solid #f5f5f5;
+		padding-bottom: 15rpx;
+	}
+	.live-mode{
+		width: 70rpx;
+		height: 42rpx;
+		position: absolute;
+		right: 0;
+		bottom: 0;
+	}
+	.close-btn{
+		background-color: #FF5722;
+		width: 160rpx;
+		margin-left: 30rpx;
+	}
+	.setting-btn{
+		background-color: rgba(255,12,208,0.8);
+		color: #FFFFFF;
+		font-size: 33rpx;
+		text-align: center;
+		height: 80rpx;
+		line-height: 80rpx;
+		border-radius: 10rpx;
+		margin-top: 10rpx;
+		width: 400rpx;
+	}
+	.player-content{
+		font-size: 30rpx;
+		margin: 10rpx 0;
+	}
+	.player-name{
+		color: #666;
+		font-size: 36rpx;
+	}
+	.live-setting-item{
+		margin-bottom: 25rpx;
+		border-bottom-width: 1px;
+		border-bottom-color: #F5F5F5;
+	}
+	.player-title{
+		font-size: 37rpx;
+		border-bottom-color: #F5F5F5;
+		border-bottom-width: 1px;
+		margin-bottom: 30rpx;
+		padding-bottom: 30rpx;
+		text-align: center;
+	}
+	.live-setting-bg{
+		background-color: #FFFFFF;
+		width: 650rpx;
+		//height: 680rpx;
+		border-radius: 40rpx;
+		padding: 40rpx 30rpx;
+	}
+	.live-setting{
+		justify-content: center;
+		align-items: center;
+	}
+</style>

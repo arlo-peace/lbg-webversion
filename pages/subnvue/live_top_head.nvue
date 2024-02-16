@@ -1,0 +1,809 @@
+<template>
+	<view>
+		<view style="lines:1;flex-direction:row;margin-left:20rpx;" :style="{'margin-top':phone.statusBarHeight+'px'}">
+			<view class="live-top-left">
+				<image class="live-top-tx" :src="anchor.headimgurl" mode="aspectFill" @click="goHome"></image>
+				<view class="live-center">
+					<text class="live-username">{{anchor.nikcname}}</text>
+					<text class="live-time" :style="{'margin-top':mTo+'px'}" v-if="playerTime>0">已开播
+						{{anchor.playerTime}}</text>
+					<text class="live-time" :style="{'margin-top':mTo+'px'}" v-else>暂未开播</text>
+				</view>
+				<view v-if="param.aid != 0">
+					<image class="live-top-add" src="@/static/live/y.png" mode="aspectFill" @click="setFocus(1)"
+						v-if="isFocus"></image>
+					<image class="live-top-add" src="@/static/live/focus.png" mode="aspectFill" @click="setFocus(2)"
+						v-else></image>
+				</view>
+				<view v-else>
+					<image class="live-top-add" src="@/static/live/y.png" mode="aspectFill"></image>
+				</view>
+			</view>
+			<view class="live-top-right">
+				<view style="lines: 1;flex-direction: row;width: 230rpx;">
+					<view class="to-left" v-for="(g, i) in giveGiftUser" :key="i" @click="openUser(g)"
+						v-if="g.ranking<4">
+						<image class="live-top-tx" style="margin-left:0!important;" :src="g.headImg" mode="aspectFill">
+						</image>
+						<text class="live-top-ranking">{{g.ranking}}</text>
+					</view>
+				</view>
+				<text class="live-top-tx to-right" @click="adminUser">{{onlineNum}}</text>
+			</view>
+		</view>
+		<view class="give-sort">
+			<text :class="backColor?'give-sort-left-b':'give-sort-left-a'" class="give-sort-left"
+				:style="{'top':giveSortLeft +'px'}" v-if="isTry">试看倒计时 {{tryTimem}}</text>
+			<text class="give-sort-right" style="right: 15rpx;" @click="giveSort" :style="{'top':giveSortLeft +'px'}"
+				v-if="giveGiftUser.length>3">打赏榜</text>
+		</view>
+
+		<uni-popup ref="giveSort" type="center" v-if="giveGiftUser.length>3">
+			<view class="gift-list-sort">
+				<view class="gift-sort-head">
+					<view class="gift-sort-info">
+						<image class="gift-sort-info-no1 no2" src="/static/live/no2.png" mode="aspectFill"></image>
+						<image class="gift-sort-info-headimg" :src="no2.headImg" mode="aspectFill"></image>
+						<text class="gift-sort-username">{{no2.username}}</text>
+						<text class="gift-sort-gold">{{no2.giveGold}}金币</text>
+					</view>
+					<view class="gift-sort-info">
+						<image class="gift-sort-info-no1" src="/static/live/no1.png" mode="aspectFill"></image>
+						<image class="gift-sort-info-headimg" :src="no1.headImg" mode="aspectFill"></image>
+						<text class="gift-sort-username">{{no1.username}}</text>
+						<text class="gift-sort-gold">{{no1.giveGold}}金币</text>
+						<text class="gift-sort-text">排行榜</text>
+					</view>
+					<view class="gift-sort-info">
+						<image class="gift-sort-info-no1 no3" src="/static/live/no3.png" mode="aspectFill"></image>
+						<image class="gift-sort-info-headimg" :src="no3.headImg" mode="aspectFill"></image>
+						<text class="gift-sort-username">{{no3.username}}</text>
+						<text class="gift-sort-gold">{{no3.giveGold}}金币</text>
+					</view>
+				</view>
+				<scroll-view scroll-y :show-scrollbar="false" class="gift-sort-list">
+
+					<view class="gift-sort-item" v-for="(g, i) in giveGiftUser" :key="i" v-if="g.ranking>3">
+						<text class="gift-sort-item-left">{{g.ranking}}</text>
+						<image class="gift-sort-item-img" :src="g.headImg" mode="aspectFill"></image>
+						<text class="list-username">{{g.username}}</text>
+						<text class="gift-sort-item-right">{{g.giveGold}}金币</text>
+					</view>
+
+				</scroll-view>
+			</view>
+		</uni-popup>
+
+		<uni-popup ref="userGive" type="top">
+			<view class="user-give-bg">
+				<image class="give-user-img" :src="nowGiveUser.headImg" mode="aspectFill"></image>
+				<view class="give-user-info">
+					<text class="give-username">{{nowGiveUser.username}}</text>
+					<image class="vip" src="@/static/imgs/vips.png" mode="aspectFit" v-if="nowGiveUser.isVip"></image>
+				</view>
+				<text class="give-gold">已打赏 {{nowGiveUser.giveGold}} 金币</text>
+				<!-- <text class="btn-close">关闭</text> -->
+			</view>
+		</uni-popup>
+
+		<uni-popup ref="tryLiveEnd" :maskClick="false" type="center">
+			<view class="try-live-end">
+				<image src="/static/imgs/nt.png" class="popup-bg-xx"></image>
+				<view class="try-live-end-title"><text class="try-live-end-title-font">主播提醒您</text></view>
+				<view class="try-live-end-content">
+					<image class="try-live-end-img" src="/static/stop.png" mode="aspectFill"></image>
+					<text class="try-live-end-content-font">{{_self.anchor.tryTime / 60}}分钟试看已结束。</text>
+				</view>
+				<view class="try-live-end-btn">
+					<text class="try-live-end-btn-buy" @click="buyGoldRoom">购买</text>
+					<text class="line"></text>
+					<text class="try-live-end-btn-rec" @click="recUser">充值</text>
+					<text class="line"></text>
+					<text class="try-live-end-btn-back" @click="skipUrl(backUrl.url, backUrl.type)">返回</text>
+				</view>
+			</view>
+		</uni-popup>
+		<css-loading ref="cssLoading"></css-loading>
+	</view>
+</template>
+
+<script>
+	import api from "@/common/api.js";
+	import cssLoading from "@/components/css-loading/loading.vue"
+	var _self, setBeatTime;
+	export default {
+		components: {
+			cssLoading
+		},
+		data() {
+			return {
+				loadingHieght: 40,
+				anchor: {
+					id: 1,
+					nikcname: "载入中...",
+					headimgurl: "/static/live/langman.png",
+					playerTime: "00:00:00"
+				},
+				isFocus: true, //是否已关注
+				giveGiftUser: [], //打赏排序
+				onlineNum: 0, //在线人数
+				param: {
+					aid: 0,
+					uid: 0
+				},
+				// 用户信息
+				userInfo: {},
+				playerStatus: false, //直播状态
+				playerTime: 0, //开播时间
+
+				nowGiveUser: {}, //打赏用户信息
+
+				no1: {},
+				no2: {},
+				no3: {},
+
+				isTry: false,
+				tryTimes: 0, //计数器
+				tryTimem: '00:00:00', //正常时间
+
+				backColor: false, //变化背景色
+
+				backUrl: {
+					url: '/pages/live/list',
+					type: 'newx'
+				},
+				mTo: 0,
+				phone: {},
+
+				giveSortLeft: 84,
+			}
+		},
+		onLoad(e) {
+			_self = this;
+			_self.phone = uni.getSystemInfoSync();
+			_self.mTo = _self.phone.platform == 'ios' ? '-3' : 0;
+			var topHead = _self.phone.platform == 'ios' ? 55 : 48;
+			_self.giveSortLeft = _self.phone.statusBarHeight + topHead;
+			_self.getGiveGiftUser();
+			if (e.url != undefined) _self.backUrl = JSON.parse(e.url);
+		},
+		onUnload() {
+			//console.log('onUnload_head');
+			if (_self.param.aid != 0) _self.tryTimeDsq(0);
+		},
+		methods: {
+			_showLoading(text = null) {
+				this.$nextTick(() => {
+					this.$refs.cssLoading.open(text)
+				})
+			},
+			_hideLoading() {
+				this.$nextTick(() => {
+					this.$refs.cssLoading.close()
+				})
+			},
+			getGiveGiftUser() {
+				uni.$on('getSubnvueParam', (data) => {
+					if (data.type == 'toHead') {
+						var d = data.data;
+						_self.isFocus = d.isFocus;
+						_self.giveGiftUser = d.giftOrder;
+						if (_self.giveGiftUser.length > 2) {
+							_self.no1 = _self.giveGiftUser[0];
+							_self.no2 = _self.giveGiftUser[1];
+							_self.no3 = _self.giveGiftUser[2];
+						}
+						var anchor = d.anchorInfo;
+						_self.playerTime = anchor.playerTime;
+						anchor.playerTime = api.formatSeconds(anchor.playerTime);
+						_self.anchor = anchor;
+						_self.param = d.otherParam;
+						_self.userInfo = d.userInfo;
+						_self.tryTimes = anchor.userTry
+						_self.tryTimeFun();
+						_self.addPlayerTime();
+						//console.log(_self.playerTime);
+					}
+					if (data.type == 'anchorToHead') {
+						var d = data.data;
+						_self.anchor = d;
+					}
+					if (data.type == 'startPlayer') {
+						if (data.data) {
+							_self.addPlayerTime();
+						} else {
+							clearInterval(_self.playerStatus);
+						}
+					}
+					if (data.type == 'outUser') {
+						//console.log('outUser', data)
+						if (_self.onlineNum > 0) {
+							//_self.onlineNum = _self.onlineNum - 1;
+							_self.onlineNum = data.data.length;
+						}
+					}
+					if (data.type == 'giveGiftOrder') {
+						_self.giveGiftUser = data.data;
+						//console.log(_self.giveGiftUser)
+					}
+					if (data.type == 'onlineUsers') {
+						//console.log(data.data.data);
+						//_self.onlineNum = data.data.data;
+					}
+					if (data.type == 'onlineList') {
+						//console.log('online', data.data.data);
+						_self.onlineNum = data.data.data.length;
+					}
+					if (data.type == 'toHeadBackFun') {
+						eval(data.data);
+					}
+				});
+			},
+			tryTimeFun() {
+				var r = _self.anchor;
+				//console.log(r.gold+'/'+r.isTry+'/'+r.tryTime+'/'+r.userTry);
+				// 收费房，开启了试看，剩余时间大于0
+				if (r.gold > 0 && r.isTry && r.tryTime > 0 && r.userTry > 0) {
+					_self.isTry = true;
+					_self.tryTimeJs();
+				} else {
+					_self.isTry = false;
+				}
+			},
+			tryTimeJs() {
+				setBeatTime = setInterval(() => {
+					if (_self.tryTimes > 0) {
+						// 开始试看
+						_self.tryTimes--;
+						_self.tryTimem = api.formatSeconds(_self.tryTimes);
+						_self.backColor = !_self.backColor;
+					} else {
+						// 试看结束
+						_self.tryTimeDsq(0);
+						_self.$refs['tryLiveEnd'].open();
+						uni.$emit('getSubnvueParam', {
+							'type': 'livePlayerStatus',
+							'data': '_self.setLiveStatus(false)'
+						});
+					}
+				}, 1000);
+			},
+			tryTimeDsq(t) {
+				// t 1开始计时，0暂停显示
+				if (t == 1) {
+					_self.tryTimeFun();
+				} else {
+					clearInterval(setBeatTime);
+					_self.updateTryTime();
+				}
+			},
+			updateTryTime() {
+				var r = _self.anchor;
+				// 收费房，开启了试看，剩余时间大于0
+				if (r.gold > 0 && r.isTry && r.tryTime > 0) {
+					uni.request({
+						url: api.apiData.updateTryTime,
+						method: 'POST',
+						data: {
+							uid: _self.param.uid,
+							aid: _self.param.aid,
+							time: _self.tryTimes
+						},
+						header: {
+							'Content-type': 'application/x-www-form-urlencoded'
+						},
+						success: (r) => {
+							//console.log(r)
+						}
+					});
+				}
+			},
+			giveSort() {
+				_self.$refs['giveSort'].open();
+			},
+			goHome() {
+				if (_self.param.aid == 0) return;
+				var param = {
+					url: '/pages/live/player?aid=' + _self.anchor.id,
+					t: 'new'
+				}
+				_self.skipUrl('/pages/member/home_page?type=' + JSON.stringify(param) + '&uid=' + _self.anchor.id, 'newx');
+			},
+			setFocus(e) {
+				if (_self.param.uid == _self.param.aid) {
+					api.showToast('自己不能关注自己', 1500);
+					return
+				}
+				_self.isFocus = e == 1 ? false : true;
+				if (_self.isFocus) {
+					uni.showToast({
+						title: '关注成功',
+						icon: 'success',
+						duration: 2000
+					});
+					//console.log(_self.userInfo)
+					var data = {
+						type: 'userFocus',
+						data: _self.userInfo,
+						'anchorId': _self.param.aid
+					};
+					_self.sendSever(data);
+				}
+				uni.request({
+					url: api.apiData.focusAnchor,
+					method: 'POST',
+					data: {
+						uid: _self.param.uid,
+						aid: _self.param.aid,
+						type: e
+					},
+					header: {
+						'Content-type': 'application/x-www-form-urlencoded'
+					},
+					success: (e) => {
+						var r = e.data;
+						//console.log(r)
+						if (r.Code == 201) {
+							api.showToast(r.Msg, 3000);
+						}
+					},
+					fail: () => {
+						// 加载失败提示
+						api.showToast("服务器连接失败，请检查网络是否正常", 3000);
+					}
+				});
+			},
+			adminUser() {
+				// 主播端才有管理用户权限
+				if (_self.param.aid == 0) {
+					uni.$emit('getSubnvueParam', {
+						'type': 'backFun',
+						'data': '_self.showUserList()'
+					});
+				}
+			},
+			openUser(e) {
+				_self.nowGiveUser = e;
+				_self.$refs['userGive'].open();
+				/* uni.$emit('getSubnvueParam', {'type':'setGiveUser','data':e});
+				const subNVue = uni.getSubNVueById('live_give_user');
+				subNVue.show('slide-in-bottom', 200); */
+			},
+			addPlayerTime() {
+				//console.log(_self.playerTime);
+				_self.playerStatus = setInterval(() => {
+					_self.playerTime++;
+					_self.anchor.playerTime = api.formatSeconds(_self.playerTime);
+				}, 1000);
+			},
+			sendSever(data) {
+				var backFun = "_self.sendSocketTask(" + JSON.stringify(data) + ")";
+				uni.$emit('getSubnvueParam', {
+					'type': 'livePlayerStatus',
+					'data': backFun
+				});
+			},
+			buyGoldRoom(i) {
+				_self._showLoading('付费中...');
+				uni.request({
+					url: api.apiData.buyGoldRoom,
+					method: 'POST',
+					data: {
+						anchorId: _self.param.aid,
+						userId: _self.param.uid
+					},
+					header: {
+						'Content-type': 'application/x-www-form-urlencoded'
+					},
+					success: (e) => {
+						var r = e.data;
+						api.showToast(r.Msg, 2000);
+						if (r.Code == 200) {
+							_self.$refs['tryLiveEnd'].close();
+							_self.isTry = false;
+							uni.$emit('getSubnvueParam', {
+								'type': 'livePlayerStatus',
+								'data': '_self.setLiveStatus(true)'
+							});
+						}
+					},
+					fail: () => {
+						// 加载失败提示
+						api.showToast("支付失败，请重试", 3000);
+					}
+				});
+			},
+			recUser() {
+				_self._showLoading('正在跳转...');
+				_self.$nextTick(() => {
+					_self.$refs['tryLiveEnd'].close();
+					setTimeout(() => {
+						_self._hideLoading()
+						_self.skipUrl('/pages/recharge/recharge', 'newx');
+					}, 500)
+				});
+			},
+			// 跳转登录
+			skipUrl(uri = '/pages/login/login', type = 'newx') {
+				api.jumpUrl(uri, type);
+			},
+		},
+	};
+</script>
+
+<style>
+	.popup-bg-xx {
+		width: 230upx;
+		height: 200upx;
+		position: fixed;
+		right: 100rpx;
+		top: 550rpx;
+	}
+
+	.line {
+		width: 20rpx;
+	}
+
+	/* 试看结束弹出窗 */
+	.try-live-end-btn-buy {
+		background-color: #FF5722;
+	}
+
+	.try-live-end-btn-rec {
+		background-color: #FFB800;
+	}
+
+	.try-live-end-btn-back {
+		//background-color: #01AAED;
+		background-color: rgba(255, 12, 208, 0.8);
+	}
+
+	.try-live-end-btn-buy,
+	.try-live-end-btn-rec,
+	.try-live-end-btn-back {
+		width: 150rpx;
+		height: 70rpx;
+		line-height: 70rpx;
+		text-align: center;
+		font-size: 14px;
+		color: #FFFFFF;
+		border-radius: 10rpx;
+	}
+
+	.try-live-end-btn {
+		lines: 1;
+		flex-direction: row;
+		justify-content: center;
+	}
+
+	.try-live-end-img {
+		width: 100rpx;
+		height: 100rpx;
+		margin-right: 20rpx;
+	}
+
+	.try-live-end-content-font {
+		font-size: 35rpx;
+		color: #666666;
+	}
+
+	.try-live-end-content {
+		padding: 30rpx;
+		margin: 30rpx 0;
+		lines: 1;
+		flex-direction: row;
+		align-items: center;
+	}
+
+	.try-live-end-title {
+		height: 90rpx;
+		//background-color: #01AAED;
+		background-image: linear-gradient(to right, rgba(255, 12, 208, 0.8), rgba(254, 67, 101, 0.8));
+		border-radius: 30rpx 30rpx 0 0;
+		align-items: flex-start;
+		justify-content: center;
+		padding: 0 30rpx;
+	}
+
+	.try-live-end-title-font {
+		font-size: 38rpx;
+		color: #FFFFFF;
+	}
+
+	.try-live-end {
+		width: 550rpx;
+		background-color: #FFFFFF;
+		border-radius: 30rpx;
+		padding-bottom: 30rpx;
+	}
+
+	/* 打赏排行榜 */
+	.list-username {
+		font-size: 14px;
+		margin-left: 15rpx;
+		color: #666;
+		//font-weight: bold;
+	}
+
+	.gift-sort-item-right {
+		position: absolute;
+		right: 0;
+		font-size: 14px;
+		color: #FF5722;
+	}
+
+	.gift-sort-item-left {
+		margin-right: 20rpx;
+		width: 40rpx;
+		height: 40rpx;
+		background-color: #FF5722;
+		border-radius: 50%;
+		font-size: 12px;
+		color: #FFFFFF;
+		line-height: 40rpx;
+		text-align: center;
+		box-shadow: inset 0px 1px rgba(255, 255, 255, 0.4), 0 3px 8px #FFB800;
+	}
+
+	.gift-sort-item-img {
+		width: 55rpx;
+		height: 55rpx;
+		border-radius: 50%;
+		border: 1px solid #eee;
+	}
+
+	.gift-sort-item {
+		lines: 1;
+		flex-direction: row;
+		align-items: center;
+		height: 70rpx;
+		line-height: 70rpx;
+		border-bottom: 1px solid #eee;
+		padding-bottom: 20rpx;
+		margin-bottom: 20rpx;
+		//background-color: #007AFF;
+	}
+
+	.gift-sort-list {
+		background-color: #FFFFFF;
+		height: 400rpx;
+		width: 590rpx;
+		border-radius: 20rpx;
+		margin-top: 30rpx;
+		padding: 30rpx;
+	}
+
+	.no3,
+	.no2 {
+		margin-top: 70rpx !important;
+		width: 253rpx !important;
+		height: 71rpx !important;
+	}
+
+	.gift-sort-info-no1 {
+		width: 100rpx;
+		height: 96rpx;
+		margin-bottom: 5rpx;
+	}
+
+	.gift-sort-text {
+		margin-top: 15rpx;
+		font-size: 28rpx;
+		//font-weight: bold;
+		color: #FFFFFF;
+		background-color: #FFB800;
+		padding: 10rpx 20rpx;
+		border-radius: 10rpx;
+		box-shadow: inset 0px 1px rgba(255, 255, 255, 0.4), 0 3px 8px #FFB800;
+	}
+
+	.gift-sort-username {
+		padding: 10rpx 15rpx;
+		background-color: #009688;
+		border-radius: 10rpx;
+		color: #FFFFFF !important;
+		font-size: 12px;
+	}
+
+	.gift-sort-gold {
+		font-size: 13px;
+		color: #FFFFFF;
+		margin: 10rpx 0;
+	}
+
+	.gift-sort-info-headimg {
+		width: 130rpx;
+		height: 130rpx;
+		border-radius: 50%;
+		box-shadow: inset 0px 1px rgba(255, 255, 255, 0.4), 0 3px 8px #000000;
+		margin-bottom: 20rpx;
+	}
+
+	.gift-sort-info {
+		//background-color: #FFFFFF;
+		width: 196rpx;
+		align-items: center;
+	}
+
+	.gift-sort-head {
+		lines: 1;
+		flex-direction: row;
+		//height: 250rpx;
+		//background-color: #007AFF;
+	}
+
+	.gift-list-sort {
+		width: 650rpx;
+		//height: 750rpx;
+		border-radius: 30rpx;
+		padding: 40rpx 0;
+		background-image: linear-gradient(to right, rgba(255, 12, 208, 0.8), rgba(254, 67, 101, 0.8));
+		align-items: center;
+	}
+
+	/* 试看倒计时 */
+	.give-sort-left {
+		position: fixed;
+		left: 20rpx;
+	}
+
+	.give-sort-left-a {
+		background-color: #FFB800 !important;
+	}
+
+	.give-sort-left-b {
+		background-color: #FF5722 !important;
+	}
+
+	/* 排行榜按钮 */
+	.give-sort-right,
+	.give-sort-left {
+		position: fixed;
+		top: 180rpx;
+		color: #FFFFFF;
+		padding: 15rpx 25rpx;
+		border-radius: 30rpx;
+		background-color: rgba(255, 12, 208, 0.8);
+		font-size: 13px;
+	}
+
+	/* 打赏用户信息 */
+	.give-user-info {
+		flex-direction: row;
+		lines: 1;
+		align-items: center;
+		//background-color: #007AFF;
+	}
+
+	.vip {
+		width: 80rpx;
+		height: 38rpx;
+		margin-left: 10rpx;
+		background-color: #FFFFFF;
+		border-radius: 10rpx;
+		padding: 10rpx 15rpx;
+	}
+
+	.btn-close {
+		padding: 15rpx 20rpx;
+		background-color: #009688;
+		border-radius: 30rpx;
+		color: #FFFFFF;
+		font-size: 28rpx;
+		margin-top: 30rpx;
+	}
+
+	.give-gold {
+		font-size: 35rpx;
+		color: rgba(254, 67, 101, 0.8);
+	}
+
+	.give-username {
+		font-size: 35rpx;
+		color: #FFFFFF;
+		margin: 30rpx 0;
+	}
+
+	.give-user-img {
+		width: 100rpx;
+		height: 100rpx;
+		border-radius: 50rpx;
+		border-color: rgba(245, 160, 1, 0.8);
+		border-width: 1px;
+		margin-top: 50rpx;
+	}
+
+	.user-give-bg {
+		width: 750rpx;
+		height: 400rpx;
+		background-color: rgba(0, 0, 0, 0.75);
+		border-bottom-left-radius: 50rpx;
+		border-bottom-right-radius: 50rpx;
+		align-items: center;
+		padding: 50rpx 0;
+	}
+
+	/* end */
+	.live-top-ranking {
+		position: absolute;
+		bottom: 0;
+		color: #fff;
+		background-color: rgba(255, 12, 208, 0.8);
+		font-size: 8px;
+		height: 28rpx;
+		line-height: 30rpx;
+		width: 30rpx;
+		border-radius: 30rpx;
+		margin-left: 15rpx;
+		text-align: center;
+	}
+
+	.to-right {
+		margin-right: 0rpx !important;
+		background-color: rgba(0, 0, 0, 0.5);
+		text-align: center;
+		color: #FFFFFF;
+		font-size: 26rpx;
+		line-height: 60rpx;
+		width: 110rpx;
+	}
+
+	.to-left {
+		margin-left: 11rpx !important;
+		margin-right: 10rpx !important;
+	}
+
+	.live-top-right {
+		flex-direction: row;
+		lines: 1;
+		//background-color: rgba(0,0,0,0.5);
+		//width: 340rpx;
+		height: 80rpx;
+		border-radius: 50rpx;
+		margin-left: 15rpx;
+	}
+
+	.live-top-add {
+		width: 60rpx;
+		height: 60rpx;
+		margin-top: 11rpx;
+	}
+
+	.live-time {
+		font-size: 11px;
+		color: #FFFFFF;
+		//background-color: #009688;
+	}
+
+	.live-username {
+		color: #FFFFFF;
+		font-size: 14px;
+		width: 190rpx;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		//background-color: #007AFF;
+		lines: 1;
+	}
+
+	.live-center {
+		margin-top: 10rpx;
+		margin-left: 15rpx;
+	}
+
+	.live-top-tx {
+		width: 60rpx;
+		height: 60rpx;
+		border-radius: 60rpx;
+		margin-top: 11rpx;
+		margin-left: 7%;
+	}
+
+	.live-top-left {
+		height: 80rpx;
+		width: 350rpx;
+		border-radius: 50rpx;
+		background-color: rgba(0, 0, 0, 0.5);
+		flex-direction: row;
+		lines: 1;
+	}
+</style>

@@ -1,0 +1,37 @@
+<template>
+	<view class="live-loading" :style="{'height':+ phone.windowHeight}">
+		<image class="loading-img" src="/static/load.gif" mode="aspectFit"></image>
+	</view>
+</template>
+
+<script>
+	var _self;
+	export default {
+		data() {
+			return {
+				phone: {},
+			}
+		},
+		onLoad() {
+			_self = this;
+			_self.phone = uni.getSystemInfoSync();
+			//console.log(_self.phone.windowHeight)
+		},
+		methods: {
+			
+		}
+	}
+</script>
+
+<style>
+	.loading-img{
+		width: 250px;
+		height: 250px;
+	}
+	.live-loading{
+		width: 750rpx;
+		background-color: #000;
+		align-items: center;
+		justify-content: center;
+	}
+</style>

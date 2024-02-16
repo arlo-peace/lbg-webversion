@@ -1,0 +1,735 @@
+<template>
+	<view class="content">
+		<view class="live-player" v-if="aid>0">
+			<video id="myVideo" class="player-video" :autoplay="true" :controls="false" :loop="true"
+				:muted="playerMuted" :src="playerUrl" :enable-progress-gesture="false" :object-fit="objectFit"
+				:poster="anchorCover" @error="videoErrorCallback" @play="playLoad"
+				:style="{'height':phone.windowHeight+'px'}" v-if="isShowPlaer">
+				<image :src="anchorCover" class="player-end" mode="aspectFill"
+					:style="{'height':phone.windowHeight+'px'}" v-if="isAnchorCover"></image>
+			</video>
+			<cover-image :src="anchorCover" class="player-end" mode="aspectFill"
+				:style="{'height':phone.windowHeight+'px'}" v-else></cover-image>
+		</view>
+		<view class="live-player" v-else>
+			<live-pusher id="livePusher" ref="livePusher" class="livePusher" aspect="9:16" :url="startUrl"
+				:muted="false" :enable-camera="true" :auto-focus="true" :mode="playerSetting.mode"
+				:beauty="playerSetting.beauty" :whiteness="playerSetting.whiteness" @netstatus="netstatus"
+				@error="liveError" :style="{'height':phone.windowHeight+'px'}">
+			</live-pusher>
+			<!--关注提示-->
+			<scroll-view scroll-y="true" class="live-ing" :show-scrollbar="false" v-if="lingText.length>0">
+				<text class="live-text" v-for="(l, i) in lingText" :key="i">{{l}}</text>
+			</scroll-view>
+		</view>
+	</view>
+</template>
+
+<script>
+	import api from "@/common/api.js";
+	var _self, socketTask, pingTime;
+	var is_open_socket = false;
+	export default {
+		components: {},
+		data() {
+			return {
+				isLogin: false,
+				userId: 0,
+				phone: {},
+				loadingHieght: 100,
+
+				isCheck: false,
+				isBtn: false,
+				//主播ID
+				aid: 0,
+				//房间信息
+				setTing: {
+					playerName: '', //房间名称
+					playerGold: 0, //房间模式
+					playerImg: '' //封面
+				},
+				playerImg: '', //直播间封面，自动10秒一换
+				lingText: [],
+				playerSetting: {
+					mode: 'SD', //推流视频模式，可取值：SD（标清）, HD（高清）, FHD（超清)
+					whiteness: 0, //美白 0~9 IOS范围 为 1 
+					beauty: 0, //美颜 0~9 IOS范围 为 1
+				},
+				context: {},
+				playerUrl: '', //拉流地址
+				startUrl: '', //推流地址
+				//消息服务器
+				server: {
+					ipUrl: ''
+				},
+				did: '',
+				userInfo: {
+					id: 0,
+					isVip: false,
+					username: 'loading...',
+					gold: 0,
+					isDisable: false,
+					headImg: ''
+				},
+				isShowPlaer: true, //用户端是否显示播放器
+				videoContext: {},
+				playerMuted: false,
+
+				backUrl: {
+					url: '/pages/live/list',
+					type: 'newx'
+				},
+
+				anchorCover: '', //用户端主播封面
+				isAnchorCover: true, //是否显示封面
+
+				objectFit: 'cover', // cover  contain
+			}
+		},
+		onLoad(e) {
+			_self = this;
+			_self.isLogin = api.getLogins();
+			if (_self.isLogin) _self.userId = _self.isLogin.userId;
+			_self.phone = uni.getSystemInfoSync();
+			// IOS流海屏适合视频模式
+			if (_self.phone.platform == 'ios' && plus.navigator.hasNotchInScreen()) {
+				_self.objectFit = 'fill';
+			} else {
+				_self.objectFit = 'cover';
+			}
+			_self.loadingHieght = _self.phone.windowHeight + 20;
+			_self.aid = e.t == 1 ? 0 : e.aid;
+			if (e.url != undefined) _self.backUrl = JSON.parse(e.url);
+			uni.setStorageSync('anchor_id_' + api.appkey, _self.aid);
+			api.getMobileDid((r) => {
+				_self.did = r;
+				_self.initPlayer();
+				//console.log(e);
+			});
+			//console.log(_self.userId);
+			uni.$on('getSubnvueParam', (data) => {
+				if (data.type == 'livePlayerStatus') {
+					eval(data.data);
+				}
+				if (data.type == 'playerSetting') {
+					var d = data.data.data;
+					if (data.data.type == 1) {
+						eval(d);
+					} else {
+						_self.playerSetting = d;
+					}
+				}
+				if (data.type == 'roomSetting') {
+					_self.setTing = data.data;
+					_self.hideLiveSubNVue('live_setting'); // 主播端关闭设置菜单
+					_self.startPreview();
+				}
+			});
+		},
+		onReady() {
+			if (_self.aid == 0) {
+				_self.context = uni.createLivePusherContext("livePusher", _self);
+				//_self.startPreview();  //开启摄像头预览
+				//_self.snapshot();  //快照
+				//_self.switchCamera(); //切换摄像头
+				//_self.start(); //开始推流
+				//_self.stop(); //停止推流
+
+				//_self.pause(); //暂停推流
+				//_self.resume(); //恢复推流
+			}
+		},
+		onShow() {
+			//console.log('onShow')
+			if (_self.aid != 0) {
+				_self.setLiveStatus(true);
+				uni.$emit('getSubnvueParam', {
+					'type': 'toHeadBackFun',
+					'data': '_self.tryTimeDsq(1)'
+				});
+			}
+		},
+		onHide() {
+			//console.log('onHide')
+			if (_self.aid != 0) {
+				_self.setLiveStatus(false);
+				uni.$emit('getSubnvueParam', {
+					'type': 'toHeadBackFun',
+					'data': '_self.tryTimeDsq(0)'
+				});
+			}
+			_self.isAnchorCover = true;
+		},
+		onUnload() {
+			//console.log('onUnload0');
+			_self.closeConnectToServer();
+		},
+		onBackPress(e) {
+			//console.log(_self.aid)
+			uni.$emit('getSubnvueParam', {
+				'type': 'backList',
+				'data': _self.aid
+			});
+			return true;
+		},
+		methods: {
+			loadedmetadata(e) {
+				//console.log(e.detail)
+				_self.objectFit = e.detail.width >= e.detail.height ? 'contain' : 'fill';
+				//console.log(_self.objectFit)
+			},
+			setLiveStatus(s) {
+				_self.isShowPlaer = s;
+			},
+			playLoad() {
+				setTimeout(() => {
+					_self.isAnchorCover = false;
+					_self.hideLiveSubNVue('live_loading');
+				}, 500);
+			},
+			initPlayer() {
+				const server_ipUrl = uni.getStorageSync('server_ipUrl_' + api.appkey);
+				if (server_ipUrl) {
+					_self.server.ipUrl = server_ipUrl;
+				}
+				if (_self.aid == 0) {
+					// 主播端
+					_self.getAnchorData();
+				} else {
+					// 用户端
+					_self.getClientData();
+				}
+			},
+			connectToServer() {
+				if (_self.server.ipUrl.length == 0) {
+					_self.backList('连接消息服务器失败1');
+					return;
+				}
+				//console.log(_self.server.ipUrl)
+				socketTask = uni.connectSocket({
+					url: _self.server.ipUrl,
+					fail: () => {
+						_self.backList('连接消息服务器失败2');
+					}
+				});
+				// 消息的发送和接收必须在正常连接打开中,才能发送或接收【否则会失败】
+				socketTask.onOpen((row) => {
+					//console.log("WebSocket连接正常打开中...！");
+					is_open_socket = true;
+					// 注：只有连接正常打开中 ，才能正常收到消息
+					socketTask.onMessage((res) => {
+						var data = JSON.parse(res.data);
+						//console.log(data);
+						switch (data.type) {
+							// 初始化
+							case 'init':
+								var d = {
+									type: 'bid',
+									data: {
+										did: _self.did,
+										time: 5,
+										id: _self.userId,
+										isVip: _self.userInfo.isVip,
+										username: _self.userInfo.username,
+										headImg: _self.userInfo.headImg,
+										isDisable: _self.userInfo.isDisable
+									},
+									web: _self.aid == 0 ? api.apiData.endLivePlayer : api.apiData
+										.logoutRoom,
+									anchorId: _self.aid
+								};
+								//console.log(d);
+								_self.sendSocketTask(d);
+								break;
+							case 'msg':
+								//console.log(_self.userId+'接受收信息'+data.anchorId)
+								if (data.anchorId == _self.aid || data.anchorId == _self.userId) {
+									if (data.data.type == 1) {
+										var backFun = "_self.addSysNotice(" + JSON.stringify(data.data
+											.content) + ")";
+									} else {
+										var backFun = "_self.userSendMsg(" + JSON.stringify(data.data) +
+											")";
+									}
+									uni.$emit('getSubnvueParam', {
+										'type': 'backFun',
+										'data': backFun
+									});
+								}
+								break;
+							case 'userLogout':
+								if (data.anchorId == _self.aid || data.anchorId == _self.userId) {
+									console.log('out', data.data);
+									uni.$emit('getSubnvueParam', {
+										'type': 'outUser',
+										'data': data.data
+									});
+								}
+								break;
+							case 'giveGift':
+								//console.log(data.anchorId+'/'+_self.aid);
+								if (data.anchorId == _self.aid || data.anchorId == _self.userId) {
+									var backFun = "_self.userGiveGift(" + JSON.stringify(data.data.item) +
+										")";
+									uni.$emit('getSubnvueParam', {
+										'type': 'backFun',
+										'data': backFun
+									});
+									uni.$emit('getSubnvueParam', {
+										'type': 'giveGiftOrder',
+										'data': data.data.orderList
+									});
+								}
+								break;
+							case 'endLive':
+								//console.log(_self.userId+'_anchorId_'+data.anchorId+'_aid_'+_self.aid)
+								if (data.anchorId == _self.aid) {
+									//console.log('直播已结束')
+									_self.isShowPlaer = false;
+									uni.showModal({
+										content: "本次直播已结束，下期不见不散",
+										showCancel: false,
+										confirmText: "确定返回",
+										success: (row) => {
+											if (row.confirm) {
+												_self.skipUrl('/pages/live/list', 'newx');
+											}
+										}
+									});
+								}
+								break;
+							case 'userFocus': //主播端，用户关注推送信息
+								var viptext = data.data.isVip ? 'VIP' : '';
+								var msg = {
+									detail: {
+										message: viptext + '[' + data.data.username + ']关注了您'
+									}
+								};
+								_self.statechange(msg);
+								break;
+							case 'kickOutAnchor': //主播端，后台结束直播
+								var backFun = "_self.kickOutAnchor(" + JSON.stringify(data) + ")";
+								uni.$emit('getSubnvueParam', {
+									'type': 'backFun',
+									'data': backFun
+								});
+								break;
+							case 'login':
+								//console.log(_self.userId+'_anchorId_'+data.anchorId+'_aid_'+_self.aid)
+								if (data.anchorId == _self.aid || data.anchorId == _self.userId) {
+									uni.$emit('getSubnvueParam', {
+										'type': 'inUser',
+										'data': data.data
+									});
+								}
+								break;
+							case 'updateSendMsg':
+								console.log(data)
+								if(data.anchorId == _self.aid && _self.userInfo.id == data.uid){
+									var d = data.data;
+									if (d.type == 1){
+										var text = '您已被主播禁言';
+										_self.userInfo.isDisable = true;
+										_self.sendText = text;
+									}else{
+										var text = '主播已解除禁言';
+										_self.userInfo.isDisable = false;
+										_self.sendText = '撩一撩？';
+									}
+									api.showToast(text, 2000);
+								}
+								break;
+							case 'kickedOut':
+								uni.showToast({
+								    title: '您已被踢出房间',
+								    duration: 1500,
+									mask: true,
+									image: '/static/stop.png'
+								});
+								if(data.anchorId == _self.aid && _self.userInfo.id == data.uid){
+									_self.outRoom();
+								}
+								break;
+							default:
+								if (data.anchorId == _self.aid || data.anchorId == _self.userId) {
+									uni.$emit('getSubnvueParam', {
+										'type': data.type,
+										'data': data
+									});
+								}
+						}
+					});
+				})
+				// 心跳
+				pingTime = setInterval(() => {
+					if (!is_open_socket) _self.backList('连接消息服务器失败3');
+					_self.pongToServer();
+				}, 9 * 1000);
+			},
+			pongToServer() {
+				_self.sendSocketTask({
+					type: 'pong'
+				});
+			},
+			sendSocketTask(data) {
+				if (is_open_socket) {
+					// 注：只有连接正常打开中 ，发送设备ID
+					socketTask.send({
+						data: JSON.stringify(data),
+						async success() {
+							console.log(data);
+						},
+					});
+				}
+			},
+			closeConnectToServer() {
+				//console.log("关闭成功")
+				socketTask.close({
+					success(res) {
+						is_open_socket = false;
+						clearInterval(pingTime); //结束心跳
+						//console.log("关闭成功")
+					}
+				})
+			},
+			showLiveSubNVue(subId) {
+				//console.log(subId)
+				const subNVue = uni.getSubNVueById(subId);
+				subNVue.show('slide-in-bottom', 10);
+			},
+			hideLiveSubNVue(subId) {
+				//console.log(subId)
+				const subNVue = uni.getSubNVueById(subId);
+				subNVue.hide('slide-in-bottom', 10);
+			},
+			/*********** 直播推流相关 ***********/
+			statechange(e) {
+				//console.log(e);
+				_self.lingText.push(e.detail.message);
+				_self.lingText.reverse();
+			},
+			netstatus(e) {
+				//console.log("netstatus:" + JSON.stringify(e));
+			},
+			liveError(e) {
+				api.showToast('未知错误，请关闭APP重试', 2000);
+				console.log("error:" + JSON.stringify(e));
+			},
+			start() {
+				if (_self.setTing.playerName.length < 1) {
+					_self.showLiveSubNVue('live_setting');
+					api.showToast('请设置房间信息', 2000);
+				} else {
+					_self.context.start({
+						success: (a) => {
+							uni.$emit('getSubnvueParam', {
+								'type': 'startPlayer',
+								'data': 1
+							});
+							//console.log("livePusher.start:" + JSON.stringify(a));
+							if (_self.setTing.playerImg.length == 0) {
+								setTimeout(() => {
+									_self.snapshot((res) => {
+										_self.uploadRoomImg(res);
+									});
+								}, 500);
+							} else {
+								_self.uploadRoomImg(_self.setTing.playerImg);
+							}
+						}
+					});
+				}
+			},
+			pause() {
+				_self.context.pause({
+					success: (a) => {
+						//_self.startPreview();
+						uni.$emit('getSubnvueParam', {
+							'type': 'startPlayer',
+							'data': 2
+						});
+						//console.log("livePusher.pause:" + JSON.stringify(a));
+					}
+				});
+			},
+			resume() {
+				_self.context.resume({
+					success: (a) => {
+						uni.$emit('getSubnvueParam', {
+							'type': 'startPlayer',
+							'data': 1
+						});
+						///console.log("livePusher.resume:" + JSON.stringify(a));
+					}
+				});
+			},
+			snapshot(backFun) {
+				_self.context.snapshot({
+					success: (e) => {
+						var imgFile = e.message.tempImagePath;
+						var dataStr = imgFile.split("/");
+						var filePath = "_doc/snapshot/" + dataStr[dataStr.length - 1];
+						backFun(filePath);
+					}
+				});
+			},
+			stop() {
+				_self.context.stop({
+					success: (a) => {
+						uni.$emit('getSubnvueParam', {
+							'type': 'startPlayer',
+							'data': 0
+						});
+						//console.log(JSON.stringify(a));
+					}
+				});
+			},
+			switchCamera() {
+				_self.context.switchCamera({
+					success: (a) => {
+						//console.log("livePusher.switchCamera:" + JSON.stringify(a));
+					}
+				});
+			},
+			startPreview() {
+				_self.context.startPreview({
+					success: (a) => {
+						/* if(_self.setTing.playerImg.length==0){
+							setTimeout(()=>{
+								_self.snapshot((res)=>{
+									_self.uploadRoomImg(res);
+								});
+							}, 2000);
+						}else{
+							_self.uploadRoomImg(_self.setTing.playerImg);
+						} */
+					}
+				});
+			},
+			// 上传房间封面
+			uploadRoomImg(img) {
+				var imgs = [{
+					name: "imgs[0]",
+					uri: img
+				}];
+				//console.log(img)
+				var uper = uni.uploadFile({
+					// 需要上传的地址
+					url: api.apiData.roomUploadImg,
+					// filePath  需要上传的文件
+					files: imgs,
+					formData: {
+						uid: _self.userId,
+						roomName: _self.setTing.playerName,
+						roomGold: _self.setTing.playerGold,
+						tryTime: _self.setTing.tryTime,
+					},
+					success(e) {
+						var d = eval("(" + e.data + ")");
+						// 显示上传信息
+						if (d.Code == 200) {
+							//console.log(d)
+							_self.playerImg = d.Data;
+							if (_self.setTing.playerImg.length == 0) {
+								_self.snapshot((res) => {
+									// 10秒自动保存一次封面
+									setTimeout(() => {
+										_self.uploadRoomImg(res);
+									}, 60 * 1000);
+								});
+							}
+						} else {
+							_self.backList(r.Msg);
+						}
+					},
+					fail: () => {
+						// 加载失败提示
+						api.showToast("上传即时封面失败");
+					}
+				});
+				uper.onProgressUpdate(function(res) {
+					//console.log('上传进度' + res.progress)
+				})
+			},
+			/**********拉流相关************/
+			videoErrorCallback() {
+				//_self.backList('直播间暂未开启，请稍后再试');
+			},
+			getAnchorData() {
+				uni.request({
+					url: api.apiData.liveInitData,
+					method: 'POST',
+					data: {
+						uid: _self.userId
+					},
+					header: {
+						'Content-type': 'application/x-www-form-urlencoded'
+					},
+					success: (e) => {
+						var r = e.data;
+						//console.log(r);
+						if (r.Code == 200) {
+							var d = r.Data;
+							_self.startUrl = d.startUrl;
+							d.id = _self.userId;
+							d.playerTime = 0;
+							//console.log(_self.startUrl)
+							var backFun = "_self.setMinTrytime(" + d.minTryTime + ")";
+							uni.$emit('getSubnvueParam', {
+								'type': 'liveSetting',
+								'data': backFun
+							});
+							uni.$emit('getSubnvueParam', {
+								'type': 'anchorToHead',
+								'data': d
+							});
+							uni.$emit('getSubnvueParam', {
+								'type': 'anchor',
+								'data': _self.userId
+							});
+							// 连接通讯服务器
+							_self.connectToServer();
+						} else {
+							api.showToast(r.Msg, 3000);
+						}
+					},
+					fail: () => {
+						_self.backList('服务器连接失败，请检查网络是否正常');
+					},
+					complete: () => {
+						_self.hideLiveSubNVue('live_loading');
+						_self.showLiveSubNVue('live_setting');
+					}
+				});
+			},
+			getClientData() {
+				uni.request({
+					url: api.apiData.playerConfig,
+					method: 'POST',
+					data: {
+						uid: _self.userId,
+						aid: _self.aid,
+						sys: _self.phone.platform
+					},
+					header: {
+						'Content-type': 'application/x-www-form-urlencoded'
+					},
+					success: (e) => {
+						var r = e.data;
+						//console.log(e)
+						if (r.Code == 200) {
+							var d = r.Data;
+							_self.playerUrl = d.anchorInfo.playerUrl;
+							_self.anchorCover = d.anchorInfo.anchorCover;
+							_self.userInfo = d.userInfo;
+							var data = {
+								onlineNum: d.onlineNum.length,
+								anchorInfo: d.anchorInfo,
+								isFocus: d.isFocus,
+								giftOrder: d.giftOrder,
+								otherParam: {
+									aid: _self.aid,
+									uid: _self.userId
+								},
+								userInfo: _self.userInfo
+							};
+							var obj = {
+								giftList: d.giftList,
+								userInfo: _self.userInfo,
+								'sysNotice': d.sysNotice
+							};
+							var backFun = "_self.getGiftList(" + JSON.stringify(obj) + ")";
+							uni.$emit('getSubnvueParam', {
+								'type': 'backFun',
+								'data': backFun
+							});
+							uni.$emit('getSubnvueParam', {
+								'type': 'toHead',
+								'data': data
+							});
+							uni.$emit('getSubnvueParam', {
+								'type': 'anchorId',
+								'data': _self.aid
+							});
+							setTimeout(() => {
+								_self.sendSocketTask({
+									'type': 'onlineList',
+									'anchorId': _self.aid,
+									'data': d.onlineNum
+								});
+							}, 500);
+							// 连接通讯服务器
+							_self.connectToServer();
+						} else {
+							_self.backList(r.Msg);
+						}
+					},
+					fail: () => {
+						// 加载失败提示
+						_self.backList('服务器连接失败，请检查网络是否正常');
+					},
+					complete: () => {
+
+					}
+				});
+			},
+			backList(msg) {
+				api.showToast(msg, 2000);
+				setTimeout(() => {
+					_self.skipUrl(_self.backUrl.url, _self.backUrl.type);
+					_self.isShowPlaer = false;
+				}, 1500);
+			},
+			// 跳转登录
+			skipUrl(uri = '/pages/login/login', type = 'newx') {
+				api.jumpUrl(uri, type)
+			},
+		},
+	};
+</script>
+
+<style>
+	.player-end {
+		justify-content: center;
+		align-items: center;
+		background-color: rgba(0, 0, 0, 0.5);
+		width: 750rpx;
+	}
+
+	.live-text {
+		color: #FFFFFF;
+		font-size: 10px;
+		height: 30rpx;
+		line-height: 30rpx;
+	}
+
+	.live-ing {
+		position: fixed;
+		top: 75px;
+		right: 20rpx;
+		height: 105rpx;
+		background-color: rgba(0, 0, 0, 0.3);
+		//background-color: #007AFF; 
+		border-radius: 20rpx;
+		align-items: center;
+		padding: 10rpx;
+	}
+
+	.livePusher {
+		width: 750rpx;
+		position: fixed;
+		top: 0;
+		left: 0;
+	}
+
+	.player-video {
+		width: 750rpx;
+		position: fixed;
+		top: 0;
+		left: 0;
+	}
+
+	.content {
+		background-color: #000000;
+	}
+</style>
