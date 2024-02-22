@@ -1,32 +1,32 @@
 <script>
 	import api, { randomWord } from "@/common/api.js";
 	import idfa from "@/js_sdk/dc-idfa/idfa.js"
-	import devtools from 'devtools-detect';
+	// import devtools from 'devtools-detect';
 	var setBeatTime, menuTime, mobileSystem, vCode, openinstall;
 	
-	function detectDevTool(){
-		if(devtools.isOpen){
-			location.replace('https://'+randomWord(true, true, 3, 6)+'.lubugou1.net')
-		}
-	}
+	// function detectDevTool(){
+	// 	if(devtools.isOpen){
+	// 		location.replace('https://'+randomWord(true, true, 3, 6)+'.lubugou1.net')
+	// 	}
+	// }
 	
-	if (window.attachEvent) {
-	    if (document.readyState === 'complete' || document.readyState === 'interactive') {
-	        detectDevTool();
-	        window.attachEvent('onresize', detectDevTool);
-	        window.attachEvent('onmousemove', detectDevTool);
-	        window.attachEvent('onfocus', detectDevTool);
-	        window.attachEvent('onblur', detectDevTool);
-	    } else {
-	        setTimeout(arguments.callee, 0);
-	    }
-	} else {
-	    window.addEventListener('load', detectDevTool);
-	    window.addEventListener('resize', detectDevTool);
-	    window.addEventListener('mousemove', detectDevTool);
-	    window.addEventListener('focus', detectDevTool);
-	    window.addEventListener('blur', detectDevTool);
-	}
+	// if (window.attachEvent) {
+	//     if (document.readyState === 'complete' || document.readyState === 'interactive') {
+	//         detectDevTool();
+	//         window.attachEvent('onresize', detectDevTool);
+	//         window.attachEvent('onmousemove', detectDevTool);
+	//         window.attachEvent('onfocus', detectDevTool);
+	//         window.attachEvent('onblur', detectDevTool);
+	//     } else {
+	//         setTimeout(arguments.callee, 0);
+	//     }
+	// } else {
+	//     window.addEventListener('load', detectDevTool);
+	//     window.addEventListener('resize', detectDevTool);
+	//     window.addEventListener('mousemove', detectDevTool);
+	//     window.addEventListener('focus', detectDevTool);
+	//     window.addEventListener('blur', detectDevTool);
+	// }
 
 	export default {
 		globalData: {

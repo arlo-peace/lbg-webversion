@@ -1349,7 +1349,7 @@
 			"iconPath": "/static/tabbar/game_1.png",
 			"selectedIconPath": "/static/tabbar/game_sel_1.png",
 			"pagePath": "pages/setting/mini",
-			"text": "应用程序"
+			"text": "福利分享"
 		},{
 			"iconPath": "/static/tabbar/reac_1.png",
 			"selectedIconPath": "/static/tabbar/reac_sel_1.png",

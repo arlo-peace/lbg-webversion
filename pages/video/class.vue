@@ -48,7 +48,7 @@
 				</view>
 			</view>
 			<!-- 小广告列表 -->
-			<view v-if="isMiniAD && homeData.miniAdShow" class="mini-ad-list">
+			<view v-if="isMiniAD && homeData.miniAdShowWeb" class="mini-ad-list">
 				<view class="mini-ad-item" v-for="(m, i) in homeData.miniads" :key="i"
 					@click="api.jumpUrl(m.url, 'web')">
 					<view class="mini-ad-icon-box">
@@ -371,7 +371,7 @@
 					url: api.apiData.getClassData,
 					method: 'POST',
 					data: {
-						class_id: _self.tabId
+						class_id: _self.tabId,
 					},
 					header: {
 						'Content-type': 'application/x-www-form-urlencoded'
@@ -401,6 +401,7 @@
 						_self.isMenu = _self.homeData.menu.length ? true : false;
 						_self.isGame = _self.homeData.games.length ? true : false;
 						_self.isMiniAD = _self.homeData.miniads.length ? true : false;
+						_self.isMiniAD = _self.homeData.miniAdShowWeb;
 						_self.isTag = _self.homeData.tag.length ? true : false;
 						_self.adList = d.Data.adList
 						var timer = setTimeout(() => {

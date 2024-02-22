@@ -309,7 +309,7 @@
 				isLogin: false,
 				isNotice: false,
 				value: '',
-				city: '台湾',
+				city: '上海',
 				userId: 0,
 				to_uid: 0,
 				post_id: 0,
