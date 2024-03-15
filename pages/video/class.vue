@@ -15,7 +15,7 @@
 							:class="(tabId==m.id)||(tabId==0&&i==0)?'sel':''">{{m.name}}</text>
 						<text class="class" @click="api.jumpUrl('/pages/class/index', 'old')">分类</text>
 						<text class="class" @click="api.jumpUrl('/pages/svod/class', 'old')">精选</text>
-						<text class="class" @click="api.jumpUrl('https://lubugou1.net/')">下载APP</text>
+						<text class="class" @click="api.jumpUrl(api.apiData.apiUrl+'/redirtype/appdown')">下载APP</text>
 					</scroll-view>
 				</view>
 				<view class="head-item">
@@ -302,7 +302,7 @@
 		},
 		methods: {
 			gotoDownload() {
-				api.jumpUrl(_self.download_url);
+				api.jumpUrl(api.apiData.apiUrl+'/redirtype/appdown')
 			},
 			notice() {
 				let notice = uni.getStorageSync('notice_content_' + api.appkey);
@@ -1106,14 +1106,19 @@
 		width: 100%;
 		height: 100%;
 		box-sizing: border-box;
+		text-align: center;
 	}
 
 	.mini-ad-list .mini-ad-item .mini-ad-icon image {
 		/* width: 100%;
 		height: 100%; */
-		width: 60px;
-		height: 60px;
-		border-radius: 10upx;
+		width: 50px;
+		height: 50px;
+		border-radius: 20upx;
+	}
+	.mini-ad-list .mini-ad-item text {
+		font-size: 14px !important;
+		color: rgba(255, 255, 255, 0.8) !important;
 	}
 
 	.notice-btn {

@@ -342,15 +342,28 @@
 	/* #endif */
 	/* #ifdef H5 */
 	uni-app{
-		width: 450px;
+		width: 400px;
 		margin: auto;
 	}
 	uni-tabbar.uni-tabbar-bottom .uni-tabbar{
-		width: 450px;
+		width: 400px;
 		margin: auto;
 	}
+	@media screen and (max-width: 450px) {
+		uni-app{
+			width: 100%;
+			margin: auto;
+		}
+		uni-tabbar.uni-tabbar-bottom .uni-tabbar{
+			width: 100%;
+			margin: auto;
+		}
+		.head-top{
+			width: 100%;
+		}
+	}
 	.head-top{
-		width: 450px;
+		width: 400px;
 	}
 	::-webkit-scrollbar {
 		/* 隐藏滚动条，但依旧具备可以滚动的功能 */

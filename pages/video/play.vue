@@ -756,7 +756,7 @@
 		},
 		methods: {
 			appDownload() {
-				api.jumpUrl('https://lubugou.net/');
+				api.jumpUrl(api.apiData.apiUrl+'/redirtype/appdownvideo1')
 			},
 			goProduction(productionId) {
 				api.jumpUrl('/pages/production/detail?id=' + productionId, 'new');
@@ -1492,7 +1492,7 @@
 				_self.clickCancelBt(e, 1);
 			},
 			gotoDownload() {
-				api.jumpUrl('https://lubugou1.net');
+				api.jumpUrl(api.apiData.apiUrl+'/redirtype/appdownvideo2')
 			},
 			// 视频弹出框取消按钮点击事件
 			clickCancelBt(e, t = 2) {

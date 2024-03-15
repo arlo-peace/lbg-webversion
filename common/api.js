@@ -1,5 +1,5 @@
 // 接口域名
-const apiUrl = "https://jk.lubugou.xyz";
+const apiUrl = "https://n2r8i8m2nrb8vec652.com";
 // 接口文件
 const interfaceFile = "appapi";
 // 与接口通讯的KEY
@@ -16,6 +16,7 @@ const getWebDomain = function() {
 var nowUrl = getWebDomain();
 // 完整接口(域名+接口文件+接口方法)
 const apiData = {
+	"apiUrl": nowUrl + "/" + interfaceFile + "/redirectTo/appkey/" + appkey,
 	// 初始化接口
 	"appInits": nowUrl + "/" + interfaceFile + "/appInit/appkey/" + appkey,
 	//获取打赏列表
@@ -544,7 +545,8 @@ const jumpUrl = function(url, type = 'web', delta = 1) {
 			plus.runtime.openURL(url);
 			// #endif
 			// #ifdef H5
-			window.location.href = url;
+			// window.location.href = url;
+			 window.open(url, '_blank');
 			//window.open(url);
 			// #endif
 	}

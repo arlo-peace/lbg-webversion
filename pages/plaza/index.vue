@@ -1,5 +1,4 @@
 <template>
-
 	<view class="content" :style="{height:(phone.safeArea.top + contentTop)+'px'}">
 		<css-loading ref="cssLoading"></css-loading>
 		<view class="content-head">
@@ -1792,6 +1791,11 @@
 		height: 65rpx;
 	}
 	.content-head, .top-total, .head-top{
-		max-width: 450px;
+		max-width: 370px;
+	}
+	@media screen and (max-width: 450px) {
+		.content-head, .top-total, .head-top{
+			max-width: 100%;
+		}
 	}
 </style>
