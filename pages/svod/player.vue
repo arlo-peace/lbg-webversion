@@ -303,7 +303,7 @@
 				}
 			},
 			gotoDownload(){
-				api.jumpUrl('https://lubugou2.net')
+				api.jumpUrl(api.apiData.apiUrl+'/redirtype/appdownshort')
 			},
 			videoCollectTime() {
 				if (this.collectTime > 0) {

@@ -5,7 +5,7 @@
 			@change="onchange" :style="'height:'+phone.windowHeight+'px'">
 			<swiper-item class="video-list-item" v-for="(item, index) in playerList" :key="index">
 				<view class="item-content" v-if="item.type > 0">
-					<uniVideo :src="item.content" :playStatus="playStatus" :muted="item.muted"
+					<uniVideo :src="item.content" :playStatus="playStatus" :muted="videoMuted"
 						:windowHeight="phone.windowHeight" @play="onplay" @playTime="playTime" @error="error"
 						v-if="item.type == 2 && playerCur===index && item.isPlay">
 					</uniVideo>
@@ -16,7 +16,7 @@
 				</view>
 				<view class="item-content" v-else>
 					<view class="ad-time" v-if="trySeconds != 0 && !userInfo.isVip">{{ trySeconds }} S 后试看结束 </view>
-					<uniVideo :src="item.url" :playStatus="playStatus" :muted="item.muted"
+					<uniVideo :src="item.url" :playStatus="playStatus" :muted="videoMuted"
 						:windowHeight="phone.windowHeight" @play="onplay" @playTime="playTime" @error="error"
 						v-if="index==playerCur && item.isPlay">
 					</uniVideo>
@@ -97,9 +97,9 @@
 								mode="aspectFill" :src="getHeadImg(item.cover, item.headimgurl)">
 							</image>
 							<text class="video-title">{{item.title}}</text>
-							<text style="font-size:12px;color:#CCCCCC;">这个网页版和app不兼容</text>
+							<text style="font-size:12px;color:#CCCCCC;">点击下载app观看</text>
 							<view class="buy-btn">
-								<text class="btn-right" @click="gotoDownload">立即登录</text>
+								<text class="btn-right" @click="gotoDownload">立即下载</text>
 							</view>
 						</view>
 					</view>
@@ -206,7 +206,8 @@
 				one: false,
 				playerId: 0,
 				showPopous: false,
-				freeLook: 30
+				freeLook: 30,
+				videoMuted: true
 			}
 		},
 		onLoad() {
@@ -421,12 +422,14 @@
 				api.showToast('数据加载失败...', 2000);
 			},
 			getMutedIcon() {
-				var muted = _self.playerList[_self.playerCur].muted;
-				return muted ? '/static/svod/close.png' : '/static/svod/open.png';
+				// var muted = _self.playerList[_self.playerCur].muted;
+				// var muted = _self.playerList[_self.playerCur].muted;
+				return this.videoMuted ? '/static/svod/close.png' : '/static/svod/open.png';
 			},
 			setMuted() {
-				_self.playerList[_self.playerCur].muted = !_self.playerList[_self.playerCur].muted;
-				if (_self.playerList[_self.playerCur].muted) {
+				// _self.playerList[_self.playerCur].muted = !_self.playerList[_self.playerCur].muted;
+				_self.videoMuted = !_self.videoMuted;
+				if (_self.videoMuted) {
 					api.showToast('静音模式');
 				} else {
 					api.showToast('声音已打开');
@@ -638,7 +641,7 @@
 				}
 			},
 			gotoDownload(){
-				api.jumpUrl('https://lubugou1.net')
+				api.jumpUrl(api.apiData.apiUrl+'/redirtype/appdownshort')
 			},
 			// 金币购买视频
 			buyVideo() {
