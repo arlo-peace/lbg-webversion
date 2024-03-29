@@ -748,7 +748,11 @@
 
 			},
 			jumpUrl(u, t) {
-				api.jumpUrl(u, t);
+				if(u.includes('http') || u.includes('https')){
+					api.jumpUrl(u);
+				} else {
+					api.jumpUrl(u, t);
+				}
 			}
 
 		}

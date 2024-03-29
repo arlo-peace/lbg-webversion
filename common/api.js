@@ -1,5 +1,5 @@
 // 接口域名
-const apiUrl = "https://n2r8i8m2nrb8vec652.com";
+const apiUrl = "https://b592952ry9852ryhg.xyz";
 // 接口文件
 const interfaceFile = "appapi";
 // 与接口通讯的KEY
@@ -281,6 +281,7 @@ const apiData = {
 	"myBalance": nowUrl + "/" + interfaceFile + "/balance/appkey/" + appkey,
 	"giveFeedback": nowUrl + "/" + interfaceFile + "/userFeedback/appkey/" + appkey,
 	"initialInstall": nowUrl + "/" + interfaceFile + "/initialInstall/appkey/" + appkey,
+	"gameWap": nowUrl + "/" + interfaceFile + "/gameWap/appkey/" + appkey,
 }
 // 是否登录 未登录返回false
 const getLogins = function() {

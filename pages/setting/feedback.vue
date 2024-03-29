@@ -67,8 +67,8 @@
 		mounted() {
 			uni.getSystemInfo({
 				success: res => {
-					this.version = res.appVersion
-					this.versionCode = res.appVersionCode
+					this.version = 'WebVersion'
+					this.versionCode = Date.now()
 					this.ostype = res.osName
 					this.dBrand = res.deviceBrand
 					this.did = res.deviceId
