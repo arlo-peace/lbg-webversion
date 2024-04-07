@@ -1,6 +1,6 @@
 <style lang="scss">
 .bdd {
-	background: url('') no-repeat center center fixed ; //参数解释请往下看
+	background: url() no-repeat center center fixed ; //参数解释请往下看
 	background-size: cover;
 	box-sizing: border-box;
 	height: 100vh;
@@ -21,7 +21,8 @@
 		data() {
 			return {
 				bgurl: "/static/game/gameing.jpg",
-				link: ""
+				link: "",
+				title: ""
 			}
 		},
 		methods: {
@@ -33,6 +34,10 @@
 					success: (e) => {
 						_self.bgurl = e.data.Data.bgurl
 						_self.link = e.data.Data.url
+						_self.title = e.data.Data.title
+						uni.setNavigationBarTitle({
+							title: e.data.Data.title
+						})
 					},
 					fail: (e) => {
 						console.log(e)

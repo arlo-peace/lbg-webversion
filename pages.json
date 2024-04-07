@@ -1,7 +1,7 @@
 {
 	"pages": [ //pages数组中第一项表示应用启动页
 		{
-			"path": "pages/video/class", //pages/index/init
+			"path": "pages/setting/mini", //pages/index/init
 			"style": {
 				"enablePullDownRefresh": false,//开启下拉刷新
 				"app-plus": {
@@ -1276,6 +1276,35 @@
             
         }
         ,{
+            "path" : "pages/encyclopedia/encyclopedia",
+			"style": {
+				"enablePullDownRefresh": false,
+				"navigationBarTitleText": "",
+				"navigationBarTextStyle": "white",
+				"disableScroll": true,
+				"app-plus":{
+					"scrollIndicator": "none",
+					"titleNView": false,
+					"animationType": "slide-in-left",
+					"bounce":"none"
+				}
+			}
+        }
+		,{
+		    "path" : "pages/encyclopedia/details",
+			"style": {
+				"enablePullDownRefresh": false,
+				"navigationBarTitleText": "",
+				"navigationBarTextStyle": "white",
+				"app-plus":{
+					"scrollIndicator": "none",
+					"titleNView": {},
+					"animationType": "slide-in-left",
+					"bounce":"none"
+				}
+			}
+		}
+        ,{
             "path" : "pages/setting/center",
             "style" :                                                                                    
             {
@@ -1323,8 +1352,13 @@
 		"list": [{
 			"iconPath": "/static/tabbar/home_1.png",
 			"selectedIconPath": "/static/tabbar/home_sel_1.png",
-			"pagePath": "pages/video/class",
+			"pagePath": "pages/setting/mini",
 			"text": "首页"
+		},{
+			"iconPath": "/static/tabbar/play_1.png",
+			"selectedIconPath": "/static/tabbar/play_sel_1.png",
+			"pagePath": "pages/video/class",
+			"text": "视频"
 		},{
 			"iconPath": "/static/tabbar/class_1.png",
 			"selectedIconPath": "/static/tabbar/class_sel_1.png",
@@ -1346,10 +1380,10 @@
 			"pagePath": "pages/dggame/expect",
 			"text": "游戏"
 		},*/{
-			"iconPath": "/static/tabbar/game_1.png",
-			"selectedIconPath": "/static/tabbar/game_sel_1.png",
-			"pagePath": "pages/setting/mini",
-			"text": "福利分享"
+			"iconPath": "/static/tabbar/tv-show.png",
+			"selectedIconPath": "/static/tabbar/tv-show_sel.png",
+			"pagePath": "pages/encyclopedia/encyclopedia",
+			"text": "奇趣百科"
 		},{
 			"iconPath": "/static/tabbar/reac_1.png",
 			"selectedIconPath": "/static/tabbar/reac_sel_1.png",

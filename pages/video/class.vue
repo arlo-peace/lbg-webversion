@@ -179,57 +179,6 @@
 			</view>
 		</view>
 
-		<!-- 公告弹窗 -->
-		<uni-popup v-for="(notice,index) in notices" :key="index" :ref="`popupNotice${notice.id}`"
-			@change="closeNotice(notice)" type="center">
-			<view class="notice-bg" v-if="notice.type == 1">
-				<image class="notice_title" src="/static/svod/notice.png" mode="aspectFill"></image>
-				<scroll-view :scroll-y="true" :show-scrollbar="false" class="notice_content">
-					<view v-html="notice.content"></view>
-				</scroll-view>
-				<view style="height:50upx;"></view>
-				<view class="notice-btn">
-					<!--<view @click="closePop(notice)" class="notice-btn-item">
-						<text>立刻观影</text>
-					</view>-->
-					<view @click="api.jumpUrl('/pages/setting/mini', 'new')" class="notice-btn-item">
-						<text>应用中心</text>
-					</view>
-				</view>
-			</view>
-			<view v-else class="notice-bg">
-				<image @click="clickNotice(notice)" :src="notice.image" class="notice-image-img"></image>
-				<view class="notice-image-btn">
-					<view @click="closePop(notice)" class="notice-image-btn-item">
-						<image src="/static/imgs/x-1.png" class="notice-image-btn-item-image"></image>
-					</view>
-				</view>
-			</view>
-		</uni-popup>
-		<!-- 迷你应用列表 -->
-		<uni-popup v-if="homeData.promptMinis.length > 0" 
-			@change="closeMiniChange('popupNoticeMiniApp')"
-			ref="popupNoticeMiniApp" 
-			type="center">
-			<view class="mini-adapp notice-bg">
-				<view class="mini-ap-main">
-					<view @click="miniAdGoLink(ma)" class="mini-ap-box" v-for="(ma, index) in homeData.promptMinis" :key="index">
-						<view class="mini-ap-item">
-							<image :src="ma.images_url" mode="aspectFit"></image>
-						</view>
-						<view class="mini-ap-down">
-							<text>{{ ma.titles}}</text>
-							<image src="../../static/imgs/down_index.png" mode=""></image>
-						</view>
-					</view>
-				</view>
-				<view class="notice-image-btn">
-					<view @click="closePopMini()" class="notice-image-btn-item">
-						<image src="/static/imgs/x-1.png" class="notice-image-btn-item-image"></image>
-					</view>
-				</view>
-			</view>
-		</uni-popup>
 	</view>
 </template>
 

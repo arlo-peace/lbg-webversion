@@ -16,7 +16,6 @@ const getWebDomain = function() {
 var nowUrl = getWebDomain();
 // 完整接口(域名+接口文件+接口方法)
 const apiData = {
-	"apiUrl": nowUrl + "/" + interfaceFile + "/redirectTo/appkey/" + appkey,
 	// 初始化接口
 	"appInits": nowUrl + "/" + interfaceFile + "/appInit/appkey/" + appkey,
 	//获取打赏列表
@@ -265,6 +264,7 @@ const apiData = {
 	"shortVideoFocus": nowUrl + "/" + interfaceFile + "/shortVideoFocus/appkey/" + appkey,
 	"shortVideoDetail": nowUrl + "/" + interfaceFile + "/shortVideoDetail/appkey/" + appkey,
 	"clickPost": nowUrl + "/" + interfaceFile + "/addClickPost/appkey/" + appkey,
+	"focusList": nowUrl + "/" + interfaceFile + "/focusList/appkey/" + appkey,
 	/* 不需要APPKEY的统一放在下面 */
 	// 去支付
 	"getPay": nowUrl + "/" + interfaceFile + "/pay",
@@ -281,6 +281,12 @@ const apiData = {
 	"myBalance": nowUrl + "/" + interfaceFile + "/balance/appkey/" + appkey,
 	"giveFeedback": nowUrl + "/" + interfaceFile + "/userFeedback/appkey/" + appkey,
 	"initialInstall": nowUrl + "/" + interfaceFile + "/initialInstall/appkey/" + appkey,
+	"toPostNews": nowUrl + "/" + interfaceFile + "/toPostNews/appkey/" + appkey,
+	"encCate": nowUrl + "/" + interfaceFile + "/encyCategory/appkey/" + appkey,
+	"encyclopedias": nowUrl + "/" + interfaceFile + "/encyclopedias/appkey/" + appkey,
+	"encDetail": nowUrl + "/" + interfaceFile + "/encyclopediaDetails/appkey/" + appkey,
+	"encAction": nowUrl + "/" + interfaceFile + "/encycloAction/appkey/" + appkey,
+	"postFocus": nowUrl + "/" + interfaceFile + "/postFocus/appkey/" + appkey,
 	"gameWap": nowUrl + "/" + interfaceFile + "/gameWap/appkey/" + appkey,
 }
 // 是否登录 未登录返回false
