@@ -3,7 +3,7 @@
 		<!-- <view class="content-head" :style="{ top: top + 'px' }">活动专区</view> -->
 		<view class="list">
 			<view class="info" v-for="(d, i) in gameList" :key="i" @click="getGame(d)">
-				<image class="info-img" :src="d.img" mode="aspectFill"></image>
+				<image class="info-img" :style="{'height': d.height+'px'}" :src="d.img" mode="aspectFill"></image>
 				<view class="list-content">
 					<view class="list-title">{{d.title}}</view>
 					<view class="list-time" v-if="d.status==1">{{utils.timeTodate('Y-m-d',d.start_time)}} 至
@@ -102,7 +102,12 @@
 					_self.skipUrl(e.is_word == 0 ? e.url + '?gid=' + e.id : '/pages/game/detail?id=' + e.id, 2);
 				} else
 				if (e.target == 2) {
+					// #ifdef APP-PLUS
 					plus.runtime.openURL(e.url);
+					// #endif
+					// #ifdef H5
+					window.open(e.url, '_blank')
+					// #endif
 				} else {
 					_self.skipUrl('/pages/member/activity?type=' + encodeURI(e.url + '?gid=' + e.id), 2)
 				}

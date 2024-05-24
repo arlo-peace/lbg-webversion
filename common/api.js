@@ -17,6 +17,7 @@ var nowUrl = getWebDomain();
 // 完整接口(域名+接口文件+接口方法)
 const apiData = {
 	// 初始化接口
+	"apiUrl": nowUrl + "/" + interfaceFile + "/redirectTo/appkey/" + appkey,
 	"appInits": nowUrl + "/" + interfaceFile + "/appInit/appkey/" + appkey,
 	//获取打赏列表
 	"getDashangList": nowUrl + "/" + interfaceFile + "/getDashangList/appkey/" + appkey,
@@ -880,6 +881,7 @@ String.prototype.subCHStr = function(start, length) {
 
 module.exports = {
 	appkey,
+	apiUrl,
 	apiData,
 	getLogins,
 	getMobileDid,
