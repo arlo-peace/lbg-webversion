@@ -69,17 +69,18 @@
 
 		<view class="center-content">
 			<view class="kuai-3">
-				<view class="item-left" @click="jumpUrl('member/poster', 'new')">
-					<text style="line-height:40px;font-size:12px;">分享好友</text>
-					<text style="font-size: 11px;">{{userInfo.share_reward_text}}</text>
+				
+				<view class="item-right" @click="jumpUrl('recharge/recharge?type=2', 'new')">
+					<text style="line-height:40px;font-size:12px;">开通VIP</text>
+					<text style="font-size: 11px;">{{userInfo.rec_text}}</text>
 				</view>
 				<view class="item-center-kefu" @click="jumpUrl('game/game_list', 'new')">
 					<text style="line-height:40px;font-size:12px;">活动抽奖</text>
 					<text style="font-size:11px;">超高中奖率</text>
 				</view>
-				<view class="item-right" @click="jumpUrl('recharge/recharge?type=2', 'new')">
-					<text style="line-height:40px;font-size:12px;">充值金币</text>
-					<text style="font-size: 11px;">{{userInfo.rec_text}}</text>
+				<view class="item-left" @click="jumpUrl('member/poster', 'new')">
+					<text style="line-height:40px;font-size:12px;">分享好友</text>
+					<text style="font-size: 11px;">{{userInfo.share_reward_text}}</text>
 				</view>
 			</view>
 		</view>

@@ -716,7 +716,12 @@
 				isShowRate: false,
 				SystemInfo: {},
 				direction: -90,
-				isTop: false
+				isTop: false,
+				userInfo: {
+					nickname: '无名',
+					isVip: 0,
+					money: 0,
+				},
 			}
 		},
 		onReady() {
@@ -1275,7 +1280,8 @@
 					// console.log('fd')
 					//return false;
 				}
-				if (_self.isTry == 1) {
+				_self.getUserInfo();
+				if (_self.isTry == 1 && _self.userInfo.isvip != true) {
 					let feeLook = _self.info.feeLook + _self.adSkip
 					if (_self.trySeconds != 0) {
 						_self.trySeconds = feeLook - _self.formatSeconds(e.detail.currentTime);
@@ -1532,7 +1538,35 @@
 			},
 			jumpUrl(uri = 'login/login', type = 'new') {
 				api.jumpUrl('/pages/' + uri, type);
-			}
+			},
+			getUserInfo() {
+				uni.request({
+					url: api.apiData.getInfo,
+					method: 'POST',
+					data: {
+						userId: _self.userId
+					},
+					header: {
+						'Content-type': 'application/x-www-form-urlencoded'
+					},
+					success: (e) => {
+						if (e.data.Code == 200) {
+							_self.userInfo = e.data.Data;
+						} else {
+							api.delLogins();
+							_self.isLogin = false;
+						}
+						var timer = setTimeout(() => {
+							_self.loading = false;
+							_self._hideLoading()
+							clearTimeout(timer);
+						}, 300)
+					},
+					fail: () => {
+						api.showToast('服务器连接失败，请检查网络是否正常', 3000);
+					}
+				});
+			},
 		}
 	}
 </script>
