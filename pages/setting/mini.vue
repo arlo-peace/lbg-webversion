@@ -4,7 +4,7 @@
 		<view class="head-banner">
 			<swiper class="swiper" circular interval="3000" :autoplay="true" :indicator-dots="true"
 				indicator-color="rgba(255,255,255,0.4)" indicator-active-color="rgba(255,255,255,0.8)">
-				<swiper-item class="item" v-for="(b, i) in banners" :key="i" @click="api.jumpUrl(b.url, 'web')">
+				<swiper-item class="item" v-for="(b, i) in banners" :key="i" @click="linkTo(b.url)">
 					<image :src="b.images_url" mode="aspectFill"></image>
 				</swiper-item>
 			</swiper>
@@ -254,6 +254,21 @@
 					}
 				});
 			},
+			linkTo(url){
+				const type = ['old:', 'new:', 'tab:','newx:','app:'];
+				if(this.checkIfStringStartsWith(url, type)){
+					const urlType = url.substr(0, url.indexOf(':'))
+					const urlString = url.substr(parseFloat(url.indexOf(':'))+1, url.length)
+					if(urlString){
+						api.jumpUrl(urlString, urlType)
+					}
+				} else {
+					api.jumpUrl(url, 'web')
+				}
+			},
+			checkIfStringStartsWith(str, substrs) {
+				return substrs.some(substr => str.startsWith(substr));
+			}
 		}
 	}
 </script>
