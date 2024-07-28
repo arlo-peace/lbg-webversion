@@ -5,8 +5,12 @@
 			@change="onchange" :style="'height:'+phone.windowHeight+'px'">
 			<swiper-item class="video-list-item" v-for="(item, index) in playerList" :key="index">
 				<view class="item-content" v-if="item.type > 0">
-					<uniVideo :src="item.content" :playStatus="playStatus" :muted="videoMuted"
+					<uniVideo :src="item.content" :playStatus="item.isPlay" :muted="videoMuted"
 						:windowHeight="phone.windowHeight" @play="onplay" @playTime="playTime" @error="error"
+						@ended="endedVideo"
+						:currentPid="currentID"
+						:playerID="`mse${index}`"
+						:cover="item.cover"
 						v-if="item.type == 2 && playerCur===index && item.isPlay">
 					</uniVideo>
 					<image @click="item.url != '#' && jumpUrl(item.url,'new')" mode="aspectFill" :src="item.content"
@@ -15,20 +19,31 @@
 					</image>
 				</view>
 				<view class="item-content" v-else>
-					<view class="ad-time" v-if="trySeconds != 0 && !userInfo.isVip">{{ trySeconds }} S 后试看结束 </view>
-					<uniVideo :src="item.url" :playStatus="playStatus" :muted="videoMuted"
+					<!-- <view class="ad-time" v-if="trySeconds != 0 && !userInfo.isVip">{{ trySeconds }} S 后试看结束 </view> -->
+					<uniVideo :src="item.url" :playStatus="item.isPlay" :muted="videoMuted"
 						:windowHeight="phone.windowHeight" @play="onplay" @playTime="playTime" @error="error"
-						v-if="index==playerCur && item.isPlay">
+						@ended="endedVideo"
+						:currentPid="currentID"
+						:playerID="`mse${index}`"
+						:cover="item.cover"
+						:playBackRate="playBackRates">
 					</uniVideo>
 					<!-- pause -->
-					<view class="pause-img" @click="playVideoStatus(!playStatus)">
-						<image src="/static/svod/btn_player.png" style="width:150upx;height:150upx;margin-top:100px;"
-							v-if="!playStatus"></image>
+					<view class="pause-img"
+						@longpress="onLongPress"
+						@touchend="onReleasePress">
+						<view class="pause-fsf" @click="playVideoStatus(!playerList[playerCur]['isPlay'])"></view>
+							<image src="/static/svod/btn_player.png" style="width:150upx;height:150upx;margin-top:100px;"
+							v-if="!playerList[playerCur]['isPlay']"></image>
+					</view>
+					<view class="playrate-short" v-if="playBackRates.rate > 1">
+						<text class="playrate-short-text">2</text>
+						<image src="/static/play/forward.png" mode="aspectFit" style="width:24rpx;height:24rpx;"></image>
 					</view>
 					<!-- cover -->
-					<image class="video-cover" mode="aspectFill" :lazy-load="true" :fade-show="false" :src="item.cover"
+					<!-- <image class="video-cover" mode="aspectFill" :lazy-load="true" :fade-show="false" :src="item.cover"
 						:style="{height: phone.windowHeight+ 'px'}" v-if="item.showCover">
-					</image>
+					</image> -->
 					<!-- right -->
 					<view class="svod-right">
 						<view class="svod-right-cover" @tap="goHome(item.uid)">
@@ -69,6 +84,9 @@
 							<image class="icon" src="/static/svod/btn_share.png" mode="aspectFill"></image>
 							<text style="font-size:24rpx;font-weight: 500;text-align: center;color: #FFFFFF;">分享</text>
 						</view>
+						<view class="svod-right-item" style="margin-top:65upx;" @click="gotoDownload">
+							<image class="icon" src="/static/play/download.png" mode="aspectFill"></image>
+						</view>
 						<view class="svod-right-item" style="margin-top:65upx;" @click="setMuted">
 							<image class="icon" :src="getMutedIcon()" mode="aspectFill"></image>
 						</view>
@@ -89,8 +107,22 @@
 								style="color:#FFFFFF;font-size:28rpx;padding:10rpx;lines:1;width:590rpx;text-overflow:ellipsis;">{{item.title}}</text>
 						</view>
 					</view>
-					<!-- 收费弹窗 -->
+					<!-- Login Box -->
 					<view class="buy-pop"
+						v-if="userId==0">  <!-- && !item.isPlay -->
+						<view class="buy-content">
+							<image style="width:150rpx;height:150rpx;border-radius:150rpx;border:2px solid #F5F5F5;"
+								mode="aspectFill" :src="getHeadImg(item.cover, item.headimgurl)">
+							</image>
+							<text class="video-title">{{item.title}}</text>
+							<text style="font-size:12px;color:#CCCCCC;">登录并继续观看</text>
+							<view class="buy-btn">
+								<text class="btn-right" @click="linkTo('login/login')">前往登录</text>
+							</view>
+						</view>
+					</view>
+					<!-- 收费弹窗 -->
+					<!-- <view class="buy-pop"
 						v-if="showPopous && !item.isPlay">
 						<view class="buy-content">
 							<image style="width:150rpx;height:150rpx;border-radius:150rpx;border:2px solid #F5F5F5;"
@@ -102,8 +134,8 @@
 								<text class="btn-right" @click="gotoDownload">立即下载</text>
 							</view>
 						</view>
-					</view>
-					<!-- <view class="buy-pop"
+					</view> -->
+					<view class="buy-pop"
 						v-if="!item.isBuy && item.gold>0 && !userInfo.isVip && userInfo.free==0 && !item.isPlay">
 						<view class="buy-content">
 							<image style="width:150rpx;height:150rpx;border-radius:150rpx;border:2px solid #F5F5F5;"
@@ -115,7 +147,7 @@
 								<text class="btn-right" @click="buyVideo">支付金币</text>
 							</view>
 						</view>
-					</view> -->
+					</view>
 				</view>
 			</swiper-item>
 
@@ -185,6 +217,7 @@
 				userId: 0,
 				fireTime: 5,
 				userInfo: {
+					free_look: 0,
 					isVip: false,
 					freeTot: 0,
 					free: 0
@@ -207,12 +240,17 @@
 				playerId: 0,
 				showPopous: false,
 				freeLook: 30,
-				videoMuted: true
+				free_look: 0,
+				videoMuted: true,
+				playStatus: true,
+				playBackRates: {idx: 'mse0', rate: 1},
+				playPageH: 0,
+				currentID: null
 			}
 		},
 		onLoad() {
 			_self = this;
-			_self._showLoading()
+			_self._showLoading('')
 			_self.phone = uni.getSystemInfoSync();
 			let login = api.getLogins();
 			if (login) _self.userId = login.userId;
@@ -227,40 +265,52 @@
 				if (login) _self.userId = login.userId;
 				_self.refreshSvod();
 			}
-			_self.playVideoStatus(true);
+			if(_self.userId > 0){
+				_self.playVideoStatus(true, 'onshow');
+			}
 		},
 		onHide() {
 			_self.one = true;
 			_self.playVideoStatus(false);
 		},
 		created() {
-			uni.getStorage({
-				key: 'isAuto_' + api.appkey,
-				success: (res) => {
-					//console.log('生成账号', res)
-					if (!res.data) {
-						var row = api.getLogins();
-						var username = row.account;
-						if (username != undefined && username.length) {
-							uni.showModal({
-								title: '账号已生成，请牢记或截图保存',
-								content: '账号：' + username + '\n密码：123456',
-								showCancel: false,
-								success: (res) => {
-									if (res.confirm) {
-										uni.setStorage({
-											key: 'isAuto_' + api.appkey,
-											data: true
-										});
-									}
-								}
-							});
-						}
-					}
-				}
-			});
+			
+			// uni.getStorage({
+			// 	key: 'isAuto_' + api.appkey,
+			// 	success: (res) => {
+			// 		//console.log('生成账号', res)
+			// 		if (!res.data) {
+			// 			var row = api.getLogins();
+			// 			var username = row.account;
+			// 			if (username != undefined && username.length) {
+			// 				uni.showModal({
+			// 					title: '账号已生成，请牢记或截图保存',
+			// 					content: '账号：' + username + '\n密码：123456',
+			// 					showCancel: false,
+			// 					success: (res) => {
+			// 						if (res.confirm) {
+			// 							uni.setStorage({
+			// 								key: 'isAuto_' + api.appkey,
+			// 								data: true
+			// 							});
+			// 						}
+			// 					}
+			// 				});
+			// 			}
+			// 		}
+			// 	}
+			// });
 		},
 		methods: {
+			onLongPress(e){
+				// this.playStatus = true;
+				// this.playerList[this.playerCur]['isPlay'] = true;
+				this.playBackRates = {idx: `mse${this.playerCur}`, rate: 2};
+			},
+			onReleasePress(){
+				// console.log(this.playerList[this.playerCur]['isPlay'])
+				this.playBackRates = {idx: `mse${this.playerCur}`, rate: 1};
+			},
 			videoCollect() {
 				if (!this.userId) return api.showToast('请先登录');
 				// 限制连续点赞时间
@@ -304,7 +354,7 @@
 			// 	}, 1000);
 			// },
 			countTime(e) {
-				let feeLook = 30
+				let feeLook = _self.free_look
 				if (_self.trySeconds != 0) {
 					_self.trySeconds = feeLook - _self.formatSeconds(e.currentTime);
 				}
@@ -402,6 +452,7 @@
 							if (r.Code == 200) {
 								var d = r.Data;
 								_self.userInfo = d.user;
+								_self.free_look = d.user.free_look;
 								if (_self.mainPage > 1) {
 									_self.playerList = _self.playerList.concat(d.list);
 								} else {
@@ -415,6 +466,15 @@
 					},
 					fail: () => {
 						_self.pageError();
+					},
+					complete(){
+						if(_self.playerList?.length <= 0){
+							_self.showFollows = true
+						} else {
+							_self.showFollows = false
+						}
+						if(_self.userId)_self.playVideoStatus(true);
+						_self._hideLoading();
 					}
 				});
 			},
@@ -429,11 +489,11 @@
 			setMuted() {
 				// _self.playerList[_self.playerCur].muted = !_self.playerList[_self.playerCur].muted;
 				_self.videoMuted = !_self.videoMuted;
-				if (_self.videoMuted) {
-					api.showToast('静音模式');
-				} else {
-					api.showToast('声音已打开');
-				}
+				// if (_self.videoMuted) {
+				// 	api.showToast('静音模式');
+				// } else {
+				// 	api.showToast('声音已打开');
+				// }
 			},
 			getHeadImg(cover, head) {
 				return head && head.length > 10 ? head : cover;
@@ -600,21 +660,38 @@
 					}
 				});
 			},
-			playVideoStatus(t) {
-				_self.playStatus = t;
-				if(t){
-					if(!_self.userInfo.isVip){
-						_self.trySeconds = this.freeLook;
-						this.countTime(this.freeLook)
-					}
+			playVideoStatus(playStatus, st=null) {
+				// _self.playStatus = t;
+				// if(t){
+				// 	_self.trySeconds = this.free_look;
+				// 	if(this.userInfo.free_look > 0){
+				// 		this.countTime(this.free_look)
+				// 	}
+				// 	// if(!_self.userInfo.isVip){
+				// 	// 	_self.trySeconds = this.free_look;
+				// 	// 	if(this.userInfo.free_look > 0){
+				// 	// 		this.countTime(this.freeLook)
+				// 	// 	}
+				// 	// }
+				// }
+				if(this.playerList.length > 0){
+					this.playerList[this.playerCur]['isPlay'] = playStatus;
 				}
 				
+				if(st=='onshow'){
+					if(this.playerList.length){
+						this.playerList[0]['isPlay'] = playStatus;
+						this.currentID = {idx: `mse0`, status: playStatus}
+					}
+				} else {
+					this.currentID = {idx: `mse${this.playerCur}`, status: playStatus}
+				}
 			},
 			onplay(d) {
 				_self.playerList[_self.playerCur].isPlay = _self.playStatus = d;
 				if (_self.playerList[_self.playerCur].muted) {
 					let timer = setTimeout(() => {
-						api.showToast('静音模式');
+						// api.showToast('静音模式');
 						clearTimeout(timer);
 					}, 500);
 				}
@@ -636,9 +713,9 @@
 					_self.showLoading = false;
 					_self.playerList[_self.playerCur].showCover = false;
 				}
-				if(!_self.userInfo.isVip){
-					this.countTime(e)
-				}
+			},
+			linkTo(param){
+				api.jumpUrl(`/pages/${param}`, 'new');
 			},
 			gotoDownload(){
 				api.jumpUrl(api.apiData.apiUrl+'/redirtype/appdownshort')
@@ -726,6 +803,10 @@
 						_self.playerList[_self.playerCur].muted = true;
 						_self.playerList[_self.playerCur].showCover = true;
 						_self.playerCur = index;
+						console.log(_self.userId)
+						if(_self.userId){
+							_self.currentID = {idx: `mse${_self.playerCur}`, status: true}
+						}
 					}
 					_self.commentListTot = _self.playerList[_self.playerCur].comment;
 					_self.isPlay(); // 播放状态逻辑
@@ -734,7 +815,7 @@
 				}, _self.duration);
 				if(!_self.userInfo.isVip){
 					_self.showPopous = false
-					_self.trySeconds = 30
+					_self.trySeconds = _self.free_look
 				}
 			},
 			getMoreData() {
@@ -850,7 +931,23 @@
 		flex-direction: column;
 		display: flex;
 	}
-
+	.playrate-short{
+	    position: absolute;
+	    top: 60px;
+	    left: 48%;
+	    display: flex;
+	    flex-direction: row;
+	    align-items: center;
+		background-color: rgba(0, 0, 0, 0.5);
+		padding: 2px 6px;
+		border-radius: 20px;
+	}
+	.playrate-short-text{
+	    color: #FFFFFF;
+	    font-weight: 600;
+	    margin-right: 5px;
+		font-size: 14px;
+	}
 	.user-content {
 		margin: 20rpx 0 30rpx 0;
 		font-size: 14px;
@@ -1016,6 +1113,7 @@
 		right: 30rpx;
 		align-items: center;
 		justify-content: center;
+		z-index: 5;
 	}
 
 	.video-cover {
@@ -1036,8 +1134,20 @@
 		display: flex;
 		align-items: center;
 		justify-content: center;
+		z-index: 2;
 	}
 
+	.pause-fsf{
+		width: 250px;
+		position: absolute;
+		z-index: 2;
+		height: 200px;
+		text-align: center;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		margin-top: 100px;
+	}
 	.bg-video {
 		width: 100%;
 	}

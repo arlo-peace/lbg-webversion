@@ -276,6 +276,7 @@ const apiData = {
 	"getAtlasCity": nowUrl + "/" + interfaceFile + "/getAtlasCity/appkey/" + appkey,
 	"heartBeat": nowUrl + "/" + interfaceFile + "/heartbeat/appkey/" + appkey,
 	"userLogin": nowUrl + "/" + interfaceFile + "/login/appkey/" + appkey,
+	"qrLogin": nowUrl + "/" + interfaceFile + "/qrLogin/appkey/" + appkey,
 	"userReg": nowUrl + "/" + interfaceFile + "/register/appkey/" + appkey,
 	"getInfo": nowUrl + "/" + interfaceFile + "/getUserInfo/appkey/" + appkey,
 	"userSign": nowUrl + "/" + interfaceFile + "/userSign/appkey/" + appkey,

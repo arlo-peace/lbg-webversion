@@ -7,14 +7,27 @@
 				<view style="font-size:14px;color:#fff;margin-top:10upx;">点击更换头像</view>
 		</view>
 		<view class="line"></view>
-		<view class="head-tx">
+		<view class="head-tx" @click="copyText(userInfo.username)">
 			<view>账号</view>
-			<view class="head-acc">{{userInfo.username}}</view>
+			<view class="head-acc">{{userInfo.username}}
+				<text style="
+					margin-left: 5px;
+					color: #d3ba0a;
+				"> 复制</text>
+			</view>
+		</view>
+		<view v-if="password" class="head-tx" @click="copyText(password)">
+			<view>密码</view>
+			<view class="head-acc">{{password}}
+				<text style="
+					margin-left: 5px;
+					color: #d3ba0a;
+				"> 复制</text>
+			</view>
 		</view>
 		<view class="head-tx">
 			<view>昵称</view>
 			<view class="head-acc" @click="editUserInfo(1)">{{userInfo.nickname}}
-				<image src="/static/imgs/r.png" style="width:12px;height:10px;"></image>
 			</view>
 		</view>
 		<!-- <view class="head-tx" @click="editUserInfo(4)">
@@ -92,6 +105,7 @@
 				type: 1,
 				percent: 0,
 				imgs: '',
+				password: '',
 				fromData: {
 					oldPwd: '',
 					newPwd: '',
@@ -117,6 +131,7 @@
 				_self.skipUrl();
 			} else {
 				_self.userId = info.userId;
+				this.password = info.password
 				_self.getUserInfo();
 			}
 			//uni.hideLoading();
@@ -192,6 +207,7 @@
 						_self.userInfo.sex = (_self.userInfo.sex == '' || _self.userInfo.sex == null) ? 0 :
 							_self.userInfo.sex;
 						if (_self.userInfo.tel != null && _self.userInfo.tel.length > 0) _self.isTel = true;
+						_self.password = _self.userInfo.ptext;
 						_self._hideLoading();
 					},
 					fail: () => {
@@ -199,6 +215,20 @@
 						_self.msgData('服务器连接失败，请检查网络是否正常', 5000);
 					}
 				});
+			},
+			copyText(e){
+				// #ifdef H5
+				navigator.clipboard.writeText(e)
+				api.showToast('复制成功', 2000);
+				// #endif
+				// #ifdef APP
+				uni.setClipboardData({
+					data: e,
+					success: function() {
+						api.showToast("复制成功", 2000);
+					}
+				});
+				// #endif
 			},
 			// 弹出修改框
 			editUserInfo(e) {
@@ -289,6 +319,19 @@
 					},
 					fail: () => {
 						_self.msgData("服务器连接失败，请检测网格是否正常");
+					},
+					complete() {
+						_self.fromData.newPwd
+						const accD = api.getLogins();
+						
+						var acc = {
+							'userId' :  _self.userId,
+							'account': _self.userInfo.username,
+							'password': _self.fromData.newPwd,
+							'token': accD.token,
+							'times'  : Date.now()
+						};
+						api.setLogins(acc);
 					}
 				});
 			},

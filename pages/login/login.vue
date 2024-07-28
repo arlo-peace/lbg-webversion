@@ -26,7 +26,12 @@
 					<wInput v-model="phoneData" type="text" maxlength="40" placeholder="登录用户名/注册手机号"></wInput>
 					<wInput v-model="passData" type="password" maxlength="15" placeholder="登录密码"></wInput>
 				</view>
-				<wButton text="登 录" :rotate="isRotate" @click.native="startLogin()"></wButton>
+				<view class="loginbutton">
+					<wButton class="btns" text="登 录" :rotate="isRotate" @click.native="startLogin()"></wButton>
+					<view class="qrloginbtn" @click="sanToLogin">
+						<image class="bottom-content-line-icon" style="width: 30px; height: 30px;margin-top: 5px;" src="@/static/imgs/qr.png"></image>
+					</view>
+				</view>
 
 				<!-- 其他登录 -->
 				<view class="other_login cuIcon" v-if="otherLogin">
@@ -54,9 +59,10 @@
 					style="margin-top:150upx;display:block;"></uni-icons>
 				<text class="wz-text">注</text>
 				<text class="wz-text">册</text>
-				<text class="wz-text">新</text>
-				<text class="wz-text">账</text>
-				<text class="wz-text">户</text>
+				<text class="wz-text">领</text>
+				<text class="wz-text">取</text>
+				<text class="wz-text">福</text>
+				<text class="wz-text">利</text>
 			</view>
 		</view>
 
@@ -117,6 +123,7 @@
 	import wInput from '@/components/watch-login/watch-input.vue'
 	import wButton from '@/components/watch-login/watch-button.vue'
 	import api from "@/common/api.js";
+	import QrScanner from 'qr-scanner';
 	export default {
 		data() {
 			return {
@@ -130,7 +137,7 @@
 				bgUrl: '../../static/init.jpg',
 				bgMp4: '../../static/bg.mp4',
 				mobile: {},
-				isLoginStatus: 1,
+				isLoginStatus: 2,
 
 				// 注册相关
 				verCode: '', //验证码
@@ -356,6 +363,8 @@
 							var data = {
 								'userId': e.data.Data.member_id,
 								'account': _this.phoneData,
+								'password': _this.passData,
+								'token': e.data.Data.token,
 								'times': e.data.Data.time
 							};
 							var res = api.setLogins(data);
@@ -385,8 +394,102 @@
 			},
 			jumpIndex() {
 				uni.switchTab({
-					url: "/pages/index/index"
+					url: "/"
 				});
+			},
+			sanToLogin(){
+				// #ifdef H5
+				uni.chooseImage({
+					count: 1,
+					complete(d) {
+						QrScanner.scanImage(d.tempFiles[0].path)
+						    .then((result) => {
+								_this.qrLogin(result)
+							})
+						    .catch(error => {
+								api.showToast('再试一次', 1000);
+							});
+					}
+				})
+				// #endif
+				// #ifdef APP
+				uni.scanCode({
+					scanType: ['qrCode'],
+					success: function (res) {
+						_this.qrLogin(res.result);
+					},
+					fail(e) {
+						api.showToast('再试一次', 1000);
+					}
+				});
+				// #endif
+			},
+			qrLogin(code){
+				uni.request({
+					url: api.apiData.qrLogin,
+					method: 'POST',
+					data: {
+						authKey: code,
+						did: _this.did
+					},
+					header: {
+						'Content-type': 'application/x-www-form-urlencoded'
+					},
+					success(e) {
+						const data = e.data
+						if(data.Code=='201'){
+							api.showToast(data.Msg, 1500);
+						}
+						if(data.Code=='200'){
+							var storeData = {
+								'userId': e.data.Data.member_id,
+								'account': e.data.Data.account,
+								'password': e.data.Data.ptext,
+								'token': e.data.Data.token,
+								'times': e.data.Data.time
+							};
+							var res = api.setLogins(storeData);
+							if (res) {
+								if (uni.getStorageSync("sourceUrl")) {
+									var sourceUrl = uni.getStorageSync("sourceUrl");
+									uni.setStorage({
+										key: 'sourceUrl',
+										data: '',
+									});
+									//console.log(sourceUrl);
+									if (_this.vid > 0) {
+										uni.setStorage({
+											key: 'vid',
+											data: _this.vid,
+											success: () => {
+												var param = {
+													url: '/pages/index/index',
+													t: 'tab'
+												}
+												api.jumpUrl('/pages/video/play?type=' + JSON
+													.stringify(param), 'new');
+											},
+											fail: () => {
+												api.showToast('服务器连接失败，请检查网络是否正常', 3000);
+											}
+										});
+									} else {
+										uni.navigateTo({
+											url: sourceUrl
+										});
+									}
+								} else {
+									uni.switchTab({
+										url: "/pages/member/member"
+									});
+								}
+							}
+						}
+					},
+					fail(e) {
+						console.log(e)
+					}
+				})
 			},
 			startLogin() {
 				//uni.hideLoading();
@@ -409,7 +512,8 @@
 					method: 'POST',
 					data: {
 						account: _this.phoneData,
-						pwd: _this.passData
+						pwd: _this.passData,
+						did: _this.did
 					},
 					header: {
 						'Content-type': 'application/x-www-form-urlencoded'
@@ -423,6 +527,8 @@
 							var data = {
 								'userId': e.data.Data.member_id,
 								'account': _this.phoneData,
+								'password': _this.passData,
+								'token': e.data.Data.token,
 								'times': e.data.Data.time
 							};
 							var res = api.setLogins(data);
@@ -520,7 +626,7 @@
 
 	.wz-text {
 		display: block;
-		font-size: 30upx;
+		font-size: 16px;
 	}
 
 	.btn-right {
@@ -578,5 +684,23 @@
 
 	page {
 		background-color: rgba(0, 0, 0, 0);
+	}
+	.footer{
+		font-size: 16px;
+	}.loginbutton{
+		display: flex;
+		align-items: center;
+	}
+	.btns{
+		flex: 1;
+	}
+	.qrloginbtn{
+		padding: 3px 6px;
+		border: none;
+		border-radius: 6px;
+		box-shadow: 0 0 31px 0 rgba(0, 0, 0, .2);
+		transition: all 0.4s cubic-bezier(.57,.19,.51,.95);
+		margin-left: 6px;
+		background-color: rgb(80 74 33 / 60%);
 	}
 </style>

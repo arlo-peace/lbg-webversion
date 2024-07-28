@@ -229,12 +229,17 @@
 					clearTimeout(timer);
 				}, 1);
 				setBeatTime = setInterval(() => {
-					this.getServer(sys, userId, info.token);
-				}, 1 * 60 * 1000); // 1m一跳
+					var uinfo = api.getLogins();
+					this.getServer(sys, uinfo.userId, uinfo.token);
+				}, 1 * 60 * 500); // 1m一跳
 			} else {
 				//console.log('未登录状态下不发送心跳数据');
 			}
 			/* 心跳end */
+			// #ifdef H5
+			this.genSetDID()
+			// #endif
+		
 		},
 		onHide() {
 			//console.log('App Hide');
@@ -264,6 +269,17 @@
 				} else {
 					api.jumpUrl('/pages/recharge/recharge?type=2', 'new');
 				}
+			},
+			genSetDID(){
+				api.getMobileDid(async (did)=>{
+					uni.setStorage({
+					    key: 'mobileDid_'+api.appkey,
+					    data: did,
+					    success: ()=>{
+					        console.log(did);
+					    }
+					});
+				})
 			},
 			getServer(sys, userId, token) {
 				uni.request({
@@ -310,7 +326,28 @@
 	page {
 		background-color: #1D1D28;
 	}
-
+/* #ifdef H5 */
+	.video-box .xgplayer [mediatype="video"] {
+	  position: absolute !important;
+	  top: 0 !important;
+	  left: 0 !important;
+	  width: 100% !important;
+	  height: 100% !important;
+	  outline: none !important;
+	  object-fit: cover !important;
+	}
+	.video-box.xgplayer .xgplayer-controls{
+		height: 30px;
+	}
+	#pvideo.xgplayer [mediatype="video"] {
+	  width: 100% !important;
+	  height: 100% !important;
+	  outline: none !important;
+	}
+	#encoId.xgplayer [mediatype="video"]{
+		width: 100%;
+	}
+	/* #endif */
 	uni-swiper .uni-swiper-dot {
 		width: 5px !important;
 		height: 5px !important;

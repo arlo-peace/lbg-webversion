@@ -69,18 +69,17 @@
 
 		<view class="center-content">
 			<view class="kuai-3">
-				
-				<view class="item-right" @click="jumpUrl('recharge/recharge?type=2', 'new')">
-					<text style="line-height:40px;font-size:12px;">开通VIP</text>
-					<text style="font-size: 11px;">{{userInfo.rec_text}}</text>
+				<view class="item-left" @click="jumpUrl('member/poster', 'new')">
+					<text style="line-height:40px;font-size:12px;">分享好友</text>
+					<text style="font-size: 11px;">{{userInfo.share_reward_text}}</text>
 				</view>
 				<view class="item-center-kefu" @click="jumpUrl('game/game_list', 'new')">
 					<text style="line-height:40px;font-size:12px;">活动抽奖</text>
 					<text style="font-size:11px;">超高中奖率</text>
 				</view>
-				<view class="item-left" @click="jumpUrl('member/poster', 'new')">
-					<text style="line-height:40px;font-size:12px;">分享好友</text>
-					<text style="font-size: 11px;">{{userInfo.share_reward_text}}</text>
+				<view class="item-right" @click="jumpUrl('recharge/recharge?type=2', 'new')">
+					<text style="line-height:40px;font-size:12px;">充值金币</text>
+					<text style="font-size: 11px;">{{userInfo.rec_text}}</text>
 				</view>
 			</view>
 		</view>
@@ -130,14 +129,18 @@
 				<image class="bottom-content-line-icon" src="@/static/member/home-more-1.png"></image>
 				<text>官网公告</text>
 			</view>
+			<view class="bottom-content-line" @click="sanToLogin">
+				<image class="bottom-content-line-icon" style="width: 30px; height: 30px;margin-top: 5px;" src="@/static/imgs/qr.png"></image>
+				<text style="margin-top: 5px;">扫码登录</text>
+			</view>
 		<!-- #ifdef APP-PLUS -->
 			<view class="bottom-content-line" @click="clearCache">
 				<image class="bottom-content-line-icon" src="@/static/member/home-more-2.png"></image>
 				<text>清理缓存</text>
 			</view>
 		<!-- #endif -->
-
-			<view class="bottom-content-line" @click="jumpUrl('member/setting', 'new')">
+			
+			<view class="bottom-content-line" @click="showUserInfo">
 				<image class="bottom-content-line-icon" src="@/static/member/home-more-3.png"></image>
 				<text>编辑资料</text>
 			</view>
@@ -173,6 +176,10 @@
 				<image class="bottom-content-line-icon" src="@/static/member/home-fb.png"></image>
 				<text>反馈</text>
 			</view>
+			<view class="bottom-content-line" @click="showContent">
+				<image class="bottom-content-line-icon" src="@/static/imgs/kefu.png"></image>
+				<text>人工客服</text>
+			</view>
 		</view>
 
 		<view class="line"></view>
@@ -180,7 +187,22 @@
 		<view class="content-out" v-if="isLogin" @click="logout">注销登录</view>
 
 		<view class="line"></view>
-
+		
+		<uni-popup ref="popupContent" type="center" backColor="rgba(0,0,0,0.1)">
+			<view class="content-box">
+				<view class="content-ctx">
+					<view 
+						class="content-item" 
+						v-for="(r, k) in contacts"
+						@click="goToContact(r.link)"
+						:key="k">{{ r.label }}</view>
+					<view v-if="contacts.length <= 0" class="content-item">没有联络。</view>
+				</view>
+				<view class="content-btn">
+					<view class="ctbtn" @click="closePopContact">关闭</view>
+				</view>
+			</view>
+		</uni-popup>
 		<uni-popup ref="popupWatch" type="center" backColor="rgba(0,0,0,0.1)">
 			<view class="watch-bg">
 				<view class="watch-item" @click="watch_log(1)">
@@ -206,18 +228,45 @@
 			</view>
 		</uni-popup>
 		<view class="login-modal" v-if="showLogin">
+			<view @click="showLogin=false">
+				<image class="login-mobalclose" src="/static/imgs/x-1.png" mode="aspectFill"></image>
+			</view>
 			<view class="login-modal-shadow"></view>
 			<view class="login-modal-body">
 				<view class="login-modal-bg">
-					<image src="../../static/login/bg.png"></image>
+					<image src="/static/imgs/id-card-bg.png"></image>
 				</view>
 				<view class="login-modal-content">
-					<view class="login-modal-text">
-						<text>账号: {{showUsername}}</text>
-						<text>密码: 123456</text>
+					<view class="qr-code">
+						<QrView 
+							ref="qrcode" 
+							size="184px"
+							:loading="false"
+							:value="userInfo.atoken"
+							:options="qrOptions"></QrView>
+					</view>
+					<view class="logininfobox">
+						<view class="login-modal-text">
+							<view class="login-modal-item">
+								<text>账号: {{showUsername}}</text>
+								<view class="copy-btn" @click="copyText(showUsername)">复制</view>
+							</view>
+							<view class="login-modal-item">
+								<text>密码: {{showPassword}}</text>
+								<view class="copy-btn" @click="copyText(showPassword)">复制</view>
+							</view>
+							<view class="login-modal-item">
+								<text>官方网站: {{infoBox.weblink}}</text>
+								<view class="copy-btn" @click="copyText(infoBox.weblink)">复制</view>
+							</view>
+							<view class="login-modal-item">
+								<text>商业合作: {{infoBox.contact.label}}</text>
+								<view class="copy-btn" @click="copyText(infoBox.contact.link)">复制</view>
+							</view>
+						</view>
 					</view>
 					<view class="login-modal-btn" @click="confirmLogin">
-						<image src="../../static/login/btn.png" mode=""></image>
+						<view class="save-btn">请截图保存</view>
 					</view>
 				</view>
 			</view>
@@ -228,8 +277,13 @@
 <script>
 	import api from "@/common/api.js";
 	import db from '@/common/sqlite.js';
+	import QrView from "@/components/uv-qrcode/uv-qrcode.vue"
+	import QrScanner from 'qr-scanner';
 	var _self;
 	export default {
+		components: {
+			QrView
+		},
 		data() {
 			return {
 				phone: {},
@@ -237,6 +291,21 @@
 				isLogin: false,
 				showLogin: false,
 				showUsername: '123456',
+				showPassword: '123456',
+				infoBox: {
+					isqr: false,
+					qrImg: '',
+					weblink: '',
+					contact: {
+						label: '',
+						link: ''
+					}
+				},
+				did: '',
+				qrOptions: {
+					style: 'round',
+					foregroundImageSrc: '/static/loading/loading_circle.png'
+				},
 				userId: 0,
 				userInfo: {
 					nickname: '无名',
@@ -253,6 +322,7 @@
 					rec_text: '你也可以很土豪',
 					share_reward_text: '分享朋友得好礼'
 				},
+				contacts: [],
 				isDg: false,
 				vipText: '普通用户',
 				userImg: '/static/imgs/head.png',
@@ -287,6 +357,7 @@
 					_self.isNewApp = res.data;
 				}
 			});
+			_self.did = uni.getStorageSync('mobileDid_' + api.appkey);
 		},
 		onHide() {
 			this.userId = 0;
@@ -305,23 +376,32 @@
 					//console.log('success');
 				}
 			});
+			this.showUserda()
 		},
-		mounted() {
-			uni.getStorage({
-				key: 'isAuto_' + api.appkey,
-				success: (res) => {
-					if (!res.data) {
-						var row = api.getLogins();
-						var username = row.account;
-						if (username != undefined && username.length) {
-							_self.showUsername = username
-							_self.showLogin = true
-						}
-					}
-				}
-			});
-		},
+		// mounted() {
+			
+		// },
 		methods: {
+			showUserda(){
+				// console.log('fsda')
+				// uni.getStorage({
+				// 	key: 'isAuto_' + api.appkey,
+				// 	success: (res) => {
+						// if (!res.data) {
+							var row = api.getLogins();
+							var username = row.account;
+							var password = row.password;
+							if (username != undefined && username.length) {
+								_self.showUsername = username
+								if (password != undefined && password.length) {
+									_self.showPassword = password
+								}
+								_self.showLogin = true
+							}
+						// }
+				// 	}
+				// });
+			},
 			clearCache() {
 				//可以询问用户是否删除
 				uni.showModal({
@@ -346,6 +426,15 @@
 					data: true
 				});
 				_self.showLogin = false
+				api.showToast('您需要手动截图才能保存凭证哟', 2000)
+			},
+			showUserInfo(){
+				if(!api.getLogins()){
+					_self.jumpUrl('login/login', 'new'); 
+					return;
+				}
+				this.showUserda();
+				this.showLogin = true
 			},
 			goHome(uid) {
 				if (uid == 0) {
@@ -365,6 +454,77 @@
 			goPublic()
 			{
 				api.jumpUrl(_self.userInfo.public_url, _self.userInfo.public_url.indexOf('http') > -1 ? 'outer' : 'new')
+			},sanToLogin(){
+				// #ifdef H5
+				uni.chooseImage({
+					count: 1,
+					complete(d) {
+						QrScanner.scanImage(d.tempFiles[0].path)
+						    .then((result) => {
+								_self.qrLogin(result)
+							})
+						    .catch(error => {
+								api.showToast('再试一次', 1000);
+							});
+					}
+				})
+				// #endif
+				// #ifdef APP
+				uni.scanCode({
+					scanType: ['qrCode'],
+					success: function (res) {
+						_self.qrLogin(res.result);
+					},
+					fail(e) {
+						api.showToast('再试一次', 1000);
+					}
+				});
+				// #endif
+			},
+			qrLogin(code){
+				uni.request({
+					url: api.apiData.qrLogin,
+					method: 'POST',
+					data: {
+						authKey: code,
+						did: _self.did
+					},
+					header: {
+						'Content-type': 'application/x-www-form-urlencoded'
+					},
+					success(e) {
+						const data = e.data
+						if(data.Code=='201'){
+							api.showToast(data.Msg, 1500);
+						}
+						if(data.Code=='200'){
+							const u = api.getLogins();
+							var storeData = {
+								'userId': e.data.Data.member_id,
+								'account': e.data.Data.account,
+								'password': e.data.Data.ptext,
+								'token': e.data.Data.token,
+								'times': e.data.Data.time
+							};
+							var res = api.setLogins(storeData);
+							if(res) {
+								uni.switchTab({
+									url: "/pages/member/member"
+								});
+							}
+						}
+					},
+					fail(e) {
+						console.log(e)
+					}
+				})
+			},
+			goToContact(a){
+				if(a.includes('http') || a.includes('https')){
+					api.jumpUrl(a);
+				} else {
+					api.jumpUrl(a, 'new');
+				}
 			},
 			getUserInfo() {
 				uni.request({
@@ -387,8 +547,16 @@
 							_self.userInfo.nickname = (_self.userInfo.nickname == '') ? _self.userInfo
 								.username : _self.userInfo.nickname;
 							_self.userInfo.username = _self.userInfo.username
+							_self.password = _self.userInfo.ptext
 							_self.userInfo.server_url = _self.userInfo.server_url
 							_self.userInfo.public_url = _self.userInfo.public_url
+							_self.contacts = _self.userInfo.contacts
+							_self.infoBox = {
+								isqr: _self.userInfo.isqr,
+								qrImg: _self.userInfo.qrImg,
+								weblink: _self.userInfo.weblink,
+								contact: _self.userInfo.ocontact
+							}
 							if (_self.userInfo.is_permanent == 1) {
 								_self.user_level = '/static/member/user_vip_1.png';
 								_self.exp_time = "欢迎回来，尊贵的永久VIP";
@@ -511,6 +679,12 @@
 				var server_url = _self.userInfo.server_url.indexOf('?') != -1 ? _self.userInfo.server_url + '&metadata=' +
 					JSON.stringify(usr) : _self.userInfo.server_url + '?metadata=' + JSON.stringify(usr)
 				api.jumpUrl(encodeURIComponent(server_url), 'app', '客服中心');
+			},
+			showContent(){
+				this.$refs.popupContent.open();
+			},
+			closePopContact(){
+				this.$refs.popupContent.close();
 			},
 			jumpUrl(uri = 'login/login', type = 'new') {
 				if (_self.isLogin || uri == 'login/login' || uri == 'login/register' || uri == 'setting/about' || uri ==
@@ -785,8 +959,6 @@
 		border-radius: 20upx;
 	}
 
-
-
 	.bottom-content-line text {
 		font-size: 13px;
 		color: #AFAFB4;
@@ -805,6 +977,17 @@
 		height: 80upx;
 	}
 
+	.login-mobalclose{
+		position: absolute;
+		z-index: 3;
+		top: 67px;
+		/* #ifdef APP */
+		top: 23px;
+		/* #endif */
+		width: 40px;
+		height: 40px;
+		right: 20px;
+	}
 	.bottom-content-line {
 		height: 120upx;
 		padding: 3upx 30upx;
@@ -954,21 +1137,30 @@
 	.login-modal-shadow {
 		width: 100%;
 		height: 100%;
-		background-color: rgba(0, 0, 0, .7);
+		background-color: rgba(0, 0, 0, .9);
 		position: absolute;
 		top: 0;
 		left: 0;
 	}
 
 	.login-modal-body {
-		width: 507upx;
-		height: 602upx;
+		width: 320px;
+		height: 434px;
 		position: relative;
 		display: flex;
 		justify-content: center;
-		align-items: center;
 	}
-
+	.login-mobalclose{
+		position: absolute;
+		z-index: 3;
+		top: 67px;
+		/* #ifdef APP */
+		top: 23px;
+		/* #endif */
+		width: 40px;
+		height: 40px;
+		right: 20px;
+	}
 	.login-modal-bg {
 		width: 100%;
 		height: 100%;
@@ -985,7 +1177,7 @@
 	.login-modal-content {
 		box-sizing: border-box;
 		width: 420upx;
-		height: 440upx;
+		/* height: 440upx; */
 		font-size: 42upx;
 		color: #ffffff;
 		font-weight: 600;
@@ -993,34 +1185,108 @@
 		z-index: 99;
 		display: flex;
 		flex-direction: column;
-		justify-content: center;
 		align-items: center;
-		margin-left: 30upx;
-		margin-top: 240upx;
+		margin-left: 20upx;
+		margin-top: 70px;
 	}
-
+	.logininfobox{
+		margin-top: 27px;
+	}
+	.logininfobox.qrtop{
+		margin-top: 40px;
+	}
 	.login-modal-text {
-		height: 240upx;
+		width: 250px;
 		display: flex;
 		flex-direction: column;
-		line-height: 2;
+		line-height: 1.3;
 		justify-content: left;
-		align-items: left;
+		background-color: #202737;
+		padding: 6px 9px;
+		border-radius: 10px;
 	}
-
+	.copy-btn{
+		font-size: 15px;
+		color: #f6fa08;
+		text-wrap: nowrap;
+		width: 31px;
+	}
+	.login-modal-item{
+		display: flex;
+		justify-content: space-between;
+		font-size: 16px;
+		text-wrap: nowrap;
+	}
 	.login-modal-text text {
-		font-weight: 600;
-		font-size: 40upx;
+		font-weight: 500;
+		font-size: 16px;
+		max-width: 200px;
+		overflow: hidden;
 	}
-
+	
 	.login-modal-btn {
-		margin-top: 80upx;
-		width: 320upx;
-		height: 87upx;
+		margin-top: 60px;
+		width: 166px;
+		height: 25px;
 	}
-
+	.save-btn{
+		padding: 6px 16px;
+		position: absolute;
+		bottom: -80px;
+		border-radius: 25px;
+		background: #89fca4;
+		left: 50%;
+		transform: translateX(-50%);
+		font-size: 23px;
+		font-weight: 400;
+		color: #000;
+		text-align: center;
+		height: 35px;
+		width: 270px;
+		line-height: 35px;
+	}
 	.login-modal-btn image {
 		width: 100%;
 		height: 100%;
+	}
+	.content-box{
+		background-color: #FFFFFF;
+		border-radius: 6px;
+		width: 260px;
+	}
+	.content-ctx{
+		display: flex;
+		padding: 16px;
+	}
+	.content-item{
+		padding: 6px 10px;
+		color: #780eff;
+		font-size: 14px;
+	}
+	.content-btn{
+		display: flex;
+		justify-content: center;
+	}
+	.ctbtn{
+		padding: 10px 3px;
+		background-color: #ccc;
+		border-radius: 0 0 6px 6px;
+		color: #000;
+		flex: 1;
+		text-align: center;
+		font-size: 15px;
+		font-weight: 600;
+		color: #483e63;
+	}
+	.qr-code{
+		border-radius: 10px;
+		border: 2px solid #3eb9f3;
+		background: #fff;
+		padding: 7px;
+		display: flex;
+	}
+	.qrno{
+		border: 2px solid transparent;
+		background: unset;
 	}
 </style>

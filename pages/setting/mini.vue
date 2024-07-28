@@ -132,6 +132,17 @@
 					}
 				});
 			},
+			genSetDID(){
+				api.getMobileDid(async (did)=>{
+					uni.setStorage({
+					    key: 'mobileDid_'+api.appkey,
+					    data: did,
+					    success: ()=>{
+					        console.log(did);
+					    }
+					});
+				})
+			},
 			gotoDownload() {
 				api.jumpUrl(_self.download_url);
 			},
@@ -229,6 +240,7 @@
 						} else {
 							_self.isBanner = false;
 						}
+						uni.setStorageSync('customer_contents', d.Data.contents);
 						_self.isMenu = _self.homeData.menu.length ? true : false;
 						_self.isGame = _self.homeData.games.length ? true : false;
 						_self.isMiniAD = _self.homeData.miniads.length ? true : false;

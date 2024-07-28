@@ -87,8 +87,22 @@
 								style="color:#FFFFFF;font-size:28rpx;padding:10rpx;lines:1;width:590rpx;text-overflow:ellipsis;">{{item.title}}</text>
 						</view>
 					</view>
-					<!-- 收费弹窗 -->
+					<!-- Login Box -->
 					<view class="buy-pop"
+						v-if="userId==0">  <!-- && !item.isPlay -->
+						<view class="buy-content">
+							<image style="width:150rpx;height:150rpx;border-radius:150rpx;border:2px solid #F5F5F5;"
+								mode="aspectFill" :src="getHeadImg(item.cover, item.headimgurl)">
+							</image>
+							<text class="video-title">{{item.title}}</text>
+							<text style="font-size:12px;color:#CCCCCC;">登录并继续观看</text>
+							<view class="buy-btn">
+								<text class="btn-right" @click="linkTo('login/login')">前往登录</text>
+							</view>
+						</view>
+					</view>
+					<!-- 收费弹窗 -->
+					<!-- <view class="buy-pop"
 						v-if="showPopous && !item.isPlay">
 						<view class="buy-content">
 							<image style="width:150rpx;height:150rpx;border-radius:150rpx;border:2px solid #F5F5F5;"
@@ -98,6 +112,19 @@
 							<text style="font-size:12px;color:#CCCCCC;">下载APP观看完整版视频</text>
 							<view class="buy-btn">
 								<text class="btn-right" @click="gotoDownload">立即下载</text>
+							</view>
+						</view>
+					</view> -->
+					<view class="buy-pop"
+						v-if="userId && !item.isBuy && item.gold>0 && !userInfo.isVip && userInfo.free==0 && !item.isPlay">
+						<view class="buy-content">
+							<image style="width:150rpx;height:150rpx;border-radius:150rpx;border:2px solid #F5F5F5;"
+								mode="aspectFill" :src="getHeadImg(item.cover, item.headimgurl)">
+							</image>
+							<text class="video-title">{{item.title}}</text>
+							<text style="font-size:12px;color:#CCCCCC;">观看本影片需要支付{{item.gold}}金币</text>
+							<view class="buy-btn">
+								<text class="btn-right" @click="buyVideo">支付金币</text>
 							</view>
 						</view>
 					</view>
@@ -170,6 +197,7 @@
 				userId: 0,
 				fireTime: 5,
 				userInfo: {
+					free_look: 0,
 					isVip: false,
 					freeTot: 0,
 					free: 0
@@ -191,7 +219,7 @@
 				one: false,
 				playerId: 0,
 				showPopous: false,
-				freeLook: 30,
+				freeLook: 0,
 				trySeconds: 0
 			}
 		},
@@ -213,38 +241,40 @@
 				if (login) _self.userId = login.userId;
 				_self.refreshSvod();
 			}
-			_self.playVideoStatus(true);
+			if(this.userId > 0){
+				_self.playVideoStatus(true);
+			}
 		},
 		onHide() {
 			_self.one = true;
 			_self.playVideoStatus(false);
 		},
 		created() {
-			uni.getStorage({
-				key: 'isAuto_' + api.appkey,
-				success: (res) => {
-					//console.log('生成账号', res)
-					if (!res.data) {
-						var row = api.getLogins();
-						var username = row.account;
-						if (username != undefined && username.length) {
-							uni.showModal({
-								title: '账号已生成，请牢记或截图保存',
-								content: '账号：' + username + '\n密码：123456',
-								showCancel: false,
-								success: (res) => {
-									if (res.confirm) {
-										uni.setStorage({
-											key: 'isAuto_' + api.appkey,
-											data: true
-										});
-									}
-								}
-							});
-						}
-					}
-				}
-			});
+			// uni.getStorage({
+			// 	key: 'isAuto_' + api.appkey,
+			// 	success: (res) => {
+			// 		//console.log('生成账号', res)
+			// 		if (!res.data) {
+			// 			var row = api.getLogins();
+			// 			var username = row.account;
+			// 			if (username != undefined && username.length) {
+			// 				uni.showModal({
+			// 					title: '账号已生成，请牢记或截图保存',
+			// 					content: '账号：' + username + '\n密码：123456',
+			// 					showCancel: false,
+			// 					success: (res) => {
+			// 						if (res.confirm) {
+			// 							uni.setStorage({
+			// 								key: 'isAuto_' + api.appkey,
+			// 								data: true
+			// 							});
+			// 						}
+			// 					}
+			// 				});
+			// 			}
+			// 		}
+			// 	}
+			// });
 		},
 		methods: {
 			videoCollect() {
@@ -281,7 +311,7 @@
 				}
 			},
 			countTime(e) {
-				let feeLook = 30
+				let feeLook = this.freeLook
 				if (_self.trySeconds != 0) {
 					_self.trySeconds = feeLook - _self.formatSeconds(e.currentTime);
 				}
@@ -290,7 +320,6 @@
 					this.showPopous = true
 					this.onplay(false)
 				}
-				console.log(_self.trySeconds)
 			},
 			formatSeconds(a) {
 				var hh = parseInt(a / 3600);
@@ -301,6 +330,9 @@
 				} else {
 					return "00";
 				}
+			},
+			linkTo(param){
+				api.jumpUrl(`/pages/${param}`, 'new');
 			},
 			gotoDownload(){
 				api.jumpUrl(api.apiData.apiUrl+'/redirtype/appdownshort')
@@ -383,6 +415,7 @@
 							if (r.Code == 200) {
 								var d = r.Data;
 								_self.userInfo = d.user;
+								_self.freeLook = d.user.free_look;
 								if (_self.mainPage > 1) {
 									_self.playerList = _self.playerList.concat(d.list);
 								} else {
@@ -583,7 +616,9 @@
 				_self.playStatus = t;
 				if(t){
 					_self.trySeconds = this.freeLook;
-					this.countTime(this.freeLook)
+					if(this.userInfo.free_look > 0){
+						this.countTime(this.freeLook)
+					}
 				}
 			},
 			onplay(d) {
@@ -612,7 +647,9 @@
 					_self.showLoading = false;
 					_self.playerList[_self.playerCur].showCover = false;
 				}
-				this.countTime(e)
+				if(this.userInfo.free_look > 0){
+					this.countTime(e)
+				}
 			},
 			// 金币购买视频
 			buyVideo() {
@@ -703,8 +740,11 @@
 					_self.getMoreData() // 加载视频
 					clearTimeout(timer);
 				}, _self.duration);
-				_self.showPopous = false
-				_self.trySeconds = 30
+				if(!_self.userInfo.isVip){
+					_self.showPopous = false
+					_self.trySeconds = _self.freeLook
+				console.log(_self.freeLook)
+				}
 			},
 			getMoreData() {
 				let tot = _self.playerList.length;

@@ -1,5 +1,8 @@
 {
   "dependencies": {
-    "devtools-detect": "^4.0.1"
+    "devtools-detect": "^4.0.1",
+    "qr-scanner": "^1.4.2",
+    "xgplayer": "^3.0.19",
+    "xgplayer-hls.js": "^3.0.19"
   }
 }
